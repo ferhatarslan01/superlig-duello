@@ -1,0 +1,40 @@
+name: Sezon düellosu
+
+on:
+  schedule:
+    - cron: '0 17 * * 4' # her perşembe 20:00 TRT
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: superlig-bot-state
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - run: python post.py sezon
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Durumu kaydet
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A data/
+          git diff --staged --quiet || git commit -m "Güncelle: sezon düellosu durumu [skip ci]"
+          git push || (git pull --rebase && git push)
