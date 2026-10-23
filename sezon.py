@@ -22,7 +22,7 @@ KLASOR = Path(__file__).parent
 VERI = KLASOR / "data"
 OUT = KLASOR / "out"
 SEZON = 2026
-MIN_DAKIKA = 450  # 5 mac civari; altindaki oyuncularin orani guvenilmez
+MIN_DAKIKA = 90  # en az 1 mac; kisa sureli oyuncularin 90 dk oranlari oynak olabilir
 
 # 90 dakika basina karsilastirilan alanlar (benzerlik hesabi icin)
 OZELLIK = ["totalGoals", "goalAssists", "totalShots", "shotsOnTarget", "totalPasses",
