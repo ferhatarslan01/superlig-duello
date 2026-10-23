@@ -228,12 +228,55 @@ def ada_gore(oyuncular, parca):
 
 DUZELTME = VERI / "mevki_duzeltme.json"
 
+# ---- orta saha / kanat otomatik siniflandirma ----
+# ESPN LM/RM/CM gibi kodlari formasyon yuvasina gore verir (Kante "RM" gorunur). Bu yuzden
+# orta saha ve kanat oyunculari sezon istatistiklerinden "savunma - hucum" puanina gore siniflanir.
+ORTA_ROLLER = {"Kanat", "Yan orta saha", "Ofansif orta saha", "Merkez orta saha", "Defansif orta saha"}
+GENIS_POZ = {"LM", "RM", "AM-L", "AM-R", "LW", "RW"}   # kanatta/yanda oynayan kodlar
+SAVUNMA_ESIGI = 1.0    # puan >= bu -> defansif orta saha
+HUCUM_ESIGI = -1.0     # puan <  bu -> kanat (genis) / ofansif orta saha (merkez)
+
+
+def _z(havuz, alan):
+    v = [p90(o, alan) for o in havuz]
+    m = sum(v) / len(v)
+    sd = (sum((x - m) ** 2 for x in v) / len(v)) ** 0.5 or 1.0
+    return lambda o: (p90(o, alan) - m) / sd
+
+
+def orta_saha_puani(oyuncular):
+    """{oyuncu_id: puan}; puan yuksek = savunmaci, dusuk = hucumcu."""
+    havuz = [o for o in oyuncular if o["rol"] in ORTA_ROLLER]
+    if len(havuz) < 10:
+        return {}
+    zt, zc, zb = _z(havuz, "effectiveTackles"), _z(havuz, "totalClearance"), _z(havuz, "blockedShots")
+    zs, zg, za = _z(havuz, "totalShots"), _z(havuz, "totalGoals"), _z(havuz, "goalAssists")
+    return {o["id"]: (zt(o) + 0.5 * zc(o) + 0.3 * zb(o)) - (zs(o) + 0.7 * zg(o) + 0.7 * za(o)) for o in havuz}
+
+
+def orta_saha_sinifla(oyuncular):
+    puan = orta_saha_puani(oyuncular)
+    for o in oyuncular:
+        if o["id"] not in puan:
+            continue
+        if o["poz"] == "DM":
+            o["rol"] = "Defansif orta saha"
+            continue
+        sk, genis = puan[o["id"]], o["poz"] in GENIS_POZ
+        if sk >= SAVUNMA_ESIGI:
+            o["rol"] = "Defansif orta saha"
+        elif sk >= HUCUM_ESIGI:
+            o["rol"] = "Yan orta saha" if genis else "Merkez orta saha"
+        else:
+            o["rol"] = "Kanat" if genis else "Ofansif orta saha"
+    return oyuncular
+
 
 def sezon_verisi(yenile=False):
     """Ham ESPN verisi + elle mevki duzeltmeleri. ESPN, orta saha oyunculari formasyon
     yuvasina gore (LM/RM...) kodluyor; yanlis kalan oyuncular data/mevki_duzeltme.json ile
     {"Oyuncu Adi": "Rol"} seklinde duzeltilir."""
-    oyuncular = _sezon_verisi_ham(yenile)
+    oyuncular = orta_saha_sinifla(_sezon_verisi_ham(yenile))
     if not DUZELTME.exists():
         return oyuncular
     gecerli = set(ROL.values())

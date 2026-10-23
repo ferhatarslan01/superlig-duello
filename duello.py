@@ -91,7 +91,18 @@ def son_biten_mac():
     raise SystemExit("Son 10 gunde biten mac bulunamadi")
 
 
-def oyuncular(takim, eid):
+def _sezon_rolleri():
+    """{oyuncu_id: rol}: sezon istatistigine gore siniflanmis roller (yoksa bos). Mac kartinda da
+    ESPN'in formasyon yuvasi kodu yerine bu rol kullanilir."""
+    try:
+        import sezon
+        return {str(o["id"]): o["rol"] for o in sezon.sezon_verisi()}
+    except Exception:
+        return {}
+
+
+def oyuncular(takim, eid, sezon_rol=None):
+    sezon_rol = sezon_rol if sezon_rol is not None else {}
     sonuc = []
     for p in takim["roster"]:
         if not p.get("starter"):
@@ -103,7 +114,7 @@ def oyuncular(takim, eid):
             "ad": p["athlete"]["displayName"],
             "kisa": p["athlete"].get("shortName", p["athlete"]["displayName"]),
             "poz": poz,
-            "rol": ROL.get(poz),
+            "rol": sezon_rol.get(str(p["athlete"]["id"])) or ROL.get(poz),
             "st": st,
         })
     return sonuc
@@ -118,7 +129,8 @@ def etki(o):
 
 def duello_sec(ev, eid):
     """Her rol grubundan iki takimin en etkili oyuncusunu eslestirir; en yuksek toplam etkiyi secer."""
-    a, b = (oyuncular(t, eid) for t in ev["rosters"])
+    sr = _sezon_rolleri()
+    a, b = (oyuncular(t, eid, sr) for t in ev["rosters"])
     en_iyi = None
     for rol in ROL_SIRA:
         ga = [o for o in a if o["rol"] == rol]
