@@ -45,16 +45,49 @@ SATIRLAR = [  # (alan, etiket, tur)   tur: sayi = sezon toplami, yuzde
 KOTU = {"foulsCommitted", "yellowCards", "redCards", "appearances", "minutes"}
 
 
+SON_MAC_SAYISI = 4  # mevki icin bir takimin en fazla kac son macina bakilir
+
+
+def son_pozisyonlar(tid):
+    """Takimin son maclarindaki kadrolardan {oyuncu_id: pozisyon}; her oyuncu icin
+    oynadigi en son macin pozisyonu (yedekten girenler dahil)."""
+    sonuc = {}
+    try:
+        olaylar = get(f"{API}/teams/{tid}/schedule")["events"]
+    except Exception:
+        return sonuc
+    biten = [e for e in olaylar if e["competitions"][0]["status"]["type"]["completed"]]
+    biten.sort(key=lambda e: e["date"], reverse=True)
+    for e in biten[:SON_MAC_SAYISI]:
+        try:
+            ev = get(f"{API}/summary?event={e['id']}")
+        except Exception:
+            continue
+        for t in ev.get("rosters", []):
+            if str(t["team"]["id"]) != str(tid):
+                continue
+            for p in t["roster"]:
+                oynadi = any(st["name"] == "appearances" and st["value"] > 0 for st in p.get("stats", []))
+                poz = p.get("position", {}).get("abbreviation")
+                if oynadi and ROL.get(poz):
+                    sonuc.setdefault(str(p["athlete"]["id"]), poz)
+    return sonuc
+
+
 def sezon_verisi(yenile=False):
     yol = VERI / f"sezon_{SEZON}.json"
     if yol.exists() and not yenile:
         return json.loads(yol.read_text(encoding="utf-8"))
     takimlar = get(f"{API}/teams")["sports"][0]["leagues"][0]["teams"]
+    with ThreadPoolExecutor(6) as ex:
+        son_poz = dict(zip((t["team"]["id"] for t in takimlar),
+                           ex.map(son_pozisyonlar, (t["team"]["id"] for t in takimlar))))
     adaylar = []
     for t in takimlar:
         tid, tad = t["team"]["id"], t["team"]["displayName"]
         for a in get(f"{API}/teams/{tid}/roster")["athletes"]:
-            poz = a.get("position", {}).get("abbreviation")
+            # once son oynadigi macin pozisyonu, yoksa kadro listesindeki pozisyon
+            poz = son_poz[tid].get(str(a["id"])) or a.get("position", {}).get("abbreviation")
             if ROL.get(poz):
                 adaylar.append((a["id"], a["displayName"], poz, tad))
 
