@@ -118,8 +118,7 @@ def paylas(metin, yol, dry):
         print("(dry-run: gonderilmedi)")
         return True
     if not (os.environ.get("BUFFER_API_KEY") and os.environ.get("BUFFER_CHANNEL_ID")):
-        print("BUFFER_API_KEY / BUFFER_CHANNEL_ID yok; gonderilmedi", file=sys.stderr)
-        return False
+        raise SystemExit("HATA: BUFFER_API_KEY / BUFFER_CHANNEL_ID yok (depo secret'larini kontrol et); gonderilmedi")
     pid = buffer_gonder(metin, medya_yukle(yol))
     print(f"Buffer gonderi id: {pid}")
     return True
