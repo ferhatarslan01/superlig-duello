@@ -121,6 +121,7 @@ def p90(o, alan):
     return o["st"].get(alan, 0) / o["st"]["minutes"] * 90
 
 
+MAX_SURE_FARKI = 200  # iki oyuncunun oynadigi sure farki bundan az olmali (dakika)
 MAX_MESAFE = 2.4  # ~%60 benzerlik; bundan uzak ciftler otomatik secilmez (kucuk havuzda zayif eslesmeyi onler)
 
 
@@ -146,6 +147,8 @@ def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
                 canli = a["st"].get("totalGoals", 0) + a["st"].get("goalAssists", 0) + \
                     b["st"].get("totalGoals", 0) + b["st"].get("goalAssists", 0)
                 if canli < 2 and r != "Kaleci":
+                    continue
+                if abs(a["st"]["minutes"] - b["st"]["minutes"]) >= MAX_SURE_FARKI:
                     continue
                 if max_mesafe is not None and dist > max_mesafe:
                     continue
