@@ -16,6 +16,10 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+import fotograf
+
+HESAP = "@StatDuel"
+
 LIG = "tur.1"
 API = "https://site.api.espn.com/apis/site/v2/sports/soccer/" + LIG
 OUT = Path(__file__).parent / "out"
@@ -140,6 +144,13 @@ def font(boyut, kalin=True):
     return ImageFont.truetype(str(FONT_DIR / ad), int(boyut * (1.12 if kalin else 1.0)))
 
 
+def sigdir(d, metin, max_w, boyut, kalin=True, en_kucuk=26):
+    """Metin max_w'ye sigana kadar yazi boyutunu kucultur."""
+    while boyut > en_kucuk and d.textlength(metin, font=font(boyut, kalin)) > max_w:
+        boyut -= 2
+    return font(boyut, kalin)
+
+
 def kart_ciz(ev, rol, oa, ob, yol):
     W = H = 1080
     img = Image.new("RGB", (W, H), (14, 17, 26))
@@ -161,18 +172,25 @@ def kart_ciz(ev, rol, oa, ob, yol):
     ortala(100, buyuk(skor), font(40), (255, 255, 255))
     ortala(168, buyuk(rol), font(88), (230, 57, 70))
 
-    # oyuncu adlari
-    ta = oa["_takim"]
-    tb = ob["_takim"]
-    d.text((70, 300), buyuk(oa["ad"]), font=font(46), fill=(255, 255, 255))
-    d.text((70, 355), ta, font=font(28, False), fill=(160, 168, 188))
-    wb = d.textlength(buyuk(ob["ad"]), font=font(46))
-    d.text((W - 70 - wb, 300), buyuk(ob["ad"]), font=font(46), fill=(255, 255, 255))
-    wt = d.textlength(tb, font=font(28, False))
-    d.text((W - 70 - wt, 355), tb, font=font(28, False), fill=(160, 168, 188))
+    # oyuncu fotograflari ve adlari
+    D = 130
+    for o, sol in ((oa, True), (ob, False)):
+        o["_fotoim"], o["_foto"] = fotograf.foto_al(o["ad"], o["_takim"])
+        fx = 70 if sol else W - 70 - D
+        fotograf.daire_yapistir(img, o["_fotoim"], fx, 286, D)
+        ad, takim = buyuk(o["ad"]), o["_takim"]
+        fa, ft = sigdir(d, ad, 280, 44), sigdir(d, takim, 280, 28, False, 20)
+        if sol:
+            tx = 70 + D + 24
+            d.text((tx, 318), ad, font=fa, fill=(255, 255, 255))
+            d.text((tx, 372), takim, font=ft, fill=(160, 168, 188))
+        else:
+            tx = W - 70 - D - 24
+            d.text((tx - d.textlength(ad, font=fa), 318), ad, font=fa, fill=(255, 255, 255))
+            d.text((tx - d.textlength(takim, font=ft), 372), takim, font=ft, fill=(160, 168, 188))
 
     statlar = KALECI_STATLAR if rol == "Kaleci" else STATLAR
-    y = 410
+    y = 440
     for alan, etiket in statlar:
         va, vb = oa["st"].get(alan, 0), ob["st"].get(alan, 0)
         if alan == "passPct":
@@ -187,11 +205,13 @@ def kart_ciz(ev, rol, oa, ob, yol):
         wb = d.textlength(tb_, font=font(40))
         d.text((W - 120 - wb, y), tb_, font=font(40), fill=cb)
         ortala(y + 6, etiket, font(30, False), (160, 168, 188))
-        d.line([70, y + 54, W - 70, y + 54], fill=(36, 41, 58), width=2)
-        y += 56
+        d.line([70, y + 50, W - 70, y + 50], fill=(36, 41, 58), width=2)
+        y += 52
 
-    ortala(H - 82, "Sence bu düelloyu kim kazandı?", font(36), (255, 255, 255))
-    ortala(H - 40, "Veri: ESPN", font(22, False), (110, 118, 140))
+    ortala(H - 78, "Sence bu düelloyu kim kazandı?", font(36), (255, 255, 255))
+    kaynaklar = sorted({o["_foto"] for o in (oa, ob) if o["_foto"]})
+    alt = f"{HESAP}  ·  Veri: ESPN" + (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
+    ortala(H - 36, alt, font(22, False), (110, 118, 140))
     img.save(yol)
 
 

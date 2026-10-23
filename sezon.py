@@ -15,7 +15,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from duello import API, CORE, ROL, ROL_SIRA, buyuk, font, get
+import fotograf
+from duello import API, CORE, HESAP, ROL, ROL_SIRA, buyuk, font, get, sigdir
 
 KLASOR = Path(__file__).parent
 VERI = KLASOR / "data"
@@ -135,14 +136,22 @@ def kart_ciz(rol, a, b, benzerlik, yol):
     ortala(94, f"{buyuk(rol)} · {SEZON}-{str(SEZON + 1)[2:]}", font(40), (255, 255, 255))
     ortala(150, f"%{benzerlik} BENZER", font(76), (46, 134, 222))
 
-    d.text((70, 262), buyuk(a["ad"]), font=font(44), fill=(255, 255, 255))
-    d.text((70, 314), f'{a["takim"]} · {int(a["st"]["minutes"])} dk', font=font(26, False), fill=(160, 168, 188))
-    wb = d.textlength(buyuk(b["ad"]), font=font(44))
-    d.text((W - 70 - wb, 262), buyuk(b["ad"]), font=font(44), fill=(255, 255, 255))
-    t = f'{b["takim"]} · {int(b["st"]["minutes"])} dk'
-    d.text((W - 70 - d.textlength(t, font=font(26, False)), 314), t, font=font(26, False), fill=(160, 168, 188))
+    D = 130
+    for o, sol in ((a, True), (b, False)):
+        o["_fotoim"], o["_foto"] = fotograf.foto_al(o["ad"], o["takim"])
+        fotograf.daire_yapistir(img, o["_fotoim"], 70 if sol else W - 70 - D, 252, D, renk=(46, 134, 222))
+        ad, alt = buyuk(o["ad"]), f'{o["takim"]} · {int(o["st"]["minutes"])} dk'
+        fa, ft = sigdir(d, ad, 280, 44), sigdir(d, alt, 280, 26, False, 18)
+        if sol:
+            tx = 70 + D + 24
+            d.text((tx, 276), ad, font=fa, fill=(255, 255, 255))
+            d.text((tx, 330), alt, font=ft, fill=(160, 168, 188))
+        else:
+            tx = W - 70 - D - 24
+            d.text((tx - d.textlength(ad, font=fa), 276), ad, font=fa, fill=(255, 255, 255))
+            d.text((tx - d.textlength(alt, font=ft), 330), alt, font=ft, fill=(160, 168, 188))
 
-    y = 372
+    y = 396
     for alan, etiket, tur in SATIRLAR:
         va, vb = deger(a, alan, tur), deger(b, alan, tur)
         ta, tb = metin(va, tur), metin(vb, tur)
@@ -152,11 +161,13 @@ def kart_ciz(rol, a, b, benzerlik, yol):
         d.text((120, y), ta, font=font(40), fill=ca)
         d.text((W - 120 - d.textlength(tb, font=font(40)), y), tb, font=font(40), fill=cb)
         ortala(y + 6, etiket, font(28, False), (160, 168, 188))
-        d.line([70, y + 54, W - 70, y + 54], fill=(36, 41, 58), width=2)
-        y += 56
+        d.line([70, y + 50, W - 70, y + 50], fill=(36, 41, 58), width=2)
+        y += 52
 
-    ortala(H - 82, "İkisinden hangisini seçerdin?", font(36), (255, 255, 255))
-    ortala(H - 40, "Veri: ESPN", font(22, False), (110, 118, 140))
+    ortala(H - 78, "İkisinden hangisini seçerdin?", font(36), (255, 255, 255))
+    kaynaklar = sorted({o["_foto"] for o in (a, b) if o["_foto"]})
+    alt = f"{HESAP}  ·  Veri: ESPN" + (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
+    ortala(H - 36, alt, font(22, False), (110, 118, 140))
     img.save(yol)
 
 

@@ -125,19 +125,25 @@ def paylas(metin, yol, dry):
 
 
 # ---------- metinler ----------
+def foto_notu(*oyuncular):
+    k = sorted({o["_foto"] for o in oyuncular if o.get("_foto")})
+    return "\n\nFotoğraf: " + ", ".join(k) if k else ""
+
+
+
 def mac_metni(ev, rol, oa, ob):
     c = ev["header"]["competitions"][0]["competitors"]
     ev_s = next(t for t in c if t["homeAway"] == "home")
     dep = next(t for t in c if t["homeAway"] == "away")
     skor = f'{ev_s["team"]["displayName"]} {ev_s["score"]}-{dep["score"]} {dep["team"]["displayName"]}'
     return (f"{skor}\n\n{rol} düellosu: {oa['ad']} ({oa['_takim']}) vs {ob['ad']} ({ob['_takim']})\n\n"
-            f"Sence bu düelloyu kim kazandı? 👇\n\n#SüperLig #Futbol")
+            f"Sence bu düelloyu kim kazandı? 👇\n\n#SüperLig #Futbol" + foto_notu(oa, ob))
 
 
 def sezon_metni(rol, a, b, benz):
     return (f"{rol} · sezon düellosu\n\n{a['ad']} ({a['takim']}) ile {b['ad']} ({b['takim']}) "
             f"sezon boyunca %{benz} benzer bir profil çiziyor.\n\n"
-            f"İkisinden hangisini seçerdin? 👇\n\n#SüperLig #Futbol")
+            f"İkisinden hangisini seçerdin? 👇\n\n#SüperLig #Futbol" + foto_notu(a, b))
 
 
 # ---------- modlar ----------
