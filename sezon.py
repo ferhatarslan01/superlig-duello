@@ -45,17 +45,18 @@ SATIRLAR = [  # (alan, etiket, tur)   tur: sayi = sezon toplami, yuzde
 KOTU = {"foulsCommitted", "yellowCards", "redCards", "appearances", "minutes"}
 
 
-SON_MAC_SAYISI = 4  # mevki icin bir takimin en fazla kac son macina bakilir
+SON_MAC_SAYISI = 10  # mevki icin bir takimin en fazla kac son macina bakilir
 
 
 def son_pozisyonlar(tid):
-    """Takimin son maclarindaki kadrolardan {oyuncu_id: pozisyon}; her oyuncu icin
-    oynadigi en son macin pozisyonu (yedekten girenler dahil)."""
-    sonuc = {}
+    """Takimin son maclarindaki kadrolardan {oyuncu_id: pozisyon}. Her oyuncu icin son
+    SON_MAC_SAYISI macta (yedekten girenler dahil) en cok oynadigi rol grubu secilir;
+    esitlikte en yeni mac kazanir. Donen pozisyon o grubun en cok gorulen kisaltmasidir."""
+    gecmis = {}  # oyuncu_id -> [pozisyon, ...] en yeniden eskiye
     try:
         olaylar = get(f"{API}/teams/{tid}/schedule")["events"]
     except Exception:
-        return sonuc
+        return {}
     biten = [e for e in olaylar if e["competitions"][0]["status"]["type"]["completed"]]
     biten.sort(key=lambda e: e["date"], reverse=True)
     for e in biten[:SON_MAC_SAYISI]:
@@ -70,7 +71,15 @@ def son_pozisyonlar(tid):
                 oynadi = any(st["name"] == "appearances" and st["value"] > 0 for st in p.get("stats", []))
                 poz = p.get("position", {}).get("abbreviation")
                 if oynadi and ROL.get(poz):
-                    sonuc.setdefault(str(p["athlete"]["id"]), poz)
+                    gecmis.setdefault(str(p["athlete"]["id"]), []).append(poz)
+    sonuc = {}
+    for oid, pozlar in gecmis.items():
+        sayac = {}
+        for i, poz in enumerate(pozlar):
+            n, ilk = sayac.get(ROL[poz], (0, i))
+            sayac[ROL[poz]] = (n + 1, ilk)
+        rol = max(sayac, key=lambda r: (sayac[r][0], -sayac[r][1]))
+        sonuc[oid] = next(p for p in pozlar if ROL[p] == rol)
     return sonuc
 
 
@@ -86,7 +95,7 @@ def sezon_verisi(yenile=False):
     for t in takimlar:
         tid, tad = t["team"]["id"], t["team"]["displayName"]
         for a in get(f"{API}/teams/{tid}/roster")["athletes"]:
-            # once son oynadigi macin pozisyonu, yoksa kadro listesindeki pozisyon
+            # once son 10 macta en cok oynadigi mevki, yoksa kadro listesindeki pozisyon
             poz = son_poz[tid].get(str(a["id"])) or a.get("position", {}).get("abbreviation")
             if ROL.get(poz):
                 adaylar.append((a["id"], a["displayName"], poz, tad))
