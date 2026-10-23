@@ -113,7 +113,10 @@ def p90(o, alan):
     return o["st"].get(alan, 0) / o["st"]["minutes"] * 90
 
 
-def en_benzer_cift(oyuncular, rol=None, yasak=()):
+MAX_MESAFE = 2.4  # ~%60 benzerlik; bundan uzak ciftler otomatik secilmez (kucuk havuzda zayif eslesmeyi onler)
+
+
+def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
     roller = [rol] if rol else [r for r in ROL_SIRA if r != "Kaleci"]
     en = None
     for r in roller:
@@ -135,6 +138,8 @@ def en_benzer_cift(oyuncular, rol=None, yasak=()):
                 canli = a["st"].get("totalGoals", 0) + a["st"].get("goalAssists", 0) + \
                     b["st"].get("totalGoals", 0) + b["st"].get("goalAssists", 0)
                 if canli < 2 and r != "Kaleci":
+                    continue
+                if max_mesafe is not None and dist > max_mesafe:
                     continue
                 if en is None or dist < en[0]:
                     en = (dist, r, a, b)

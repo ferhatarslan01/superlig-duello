@@ -29,12 +29,13 @@ ROL = {
     "G": "Kaleci",
     "CD-L": "Stoper", "CD-R": "Stoper", "CD": "Stoper", "SW": "Stoper",
     "LB": "Bek", "RB": "Bek", "LWB": "Bek", "RWB": "Bek",
-    "DM": "Orta saha", "CM": "Orta saha", "CM-L": "Orta saha", "CM-R": "Orta saha",
-    "AM": "Ön libero", "AM-L": "Kanat", "AM-R": "Kanat",
+    "DM": "Defansif orta saha",
+    "CM": "Merkez orta saha", "CM-L": "Merkez orta saha", "CM-R": "Merkez orta saha",
+    "AM": "Ofansif orta saha", "AM-L": "Kanat", "AM-R": "Kanat",
     "LM": "Kanat", "RM": "Kanat", "LW": "Kanat", "RW": "Kanat",
     "F": "Forvet", "CF": "Forvet", "CF-L": "Forvet", "CF-R": "Forvet", "ST": "Forvet",
 }
-ROL_SIRA = ["Forvet", "Kanat", "Ön libero", "Orta saha", "Bek", "Stoper", "Kaleci"]
+ROL_SIRA = ["Forvet", "Kanat", "Ofansif orta saha", "Merkez orta saha", "Defansif orta saha", "Bek", "Stoper", "Kaleci"]
 
 STATLAR = [  # (alan, etiket)
     ("minutes", "OYNADIĞI SÜRE (DK)"),
