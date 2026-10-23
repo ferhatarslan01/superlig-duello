@@ -136,7 +136,7 @@ def mac_metni(ev, rol, oa, ob):
 
 def sezon_metni(rol, a, b, benz):
     return (f"{rol} · sezon düellosu\n\n{a['ad']} ({a['takim']}) ile {b['ad']} ({b['takim']}) "
-            f"90 dakika başına istatistiklerde %{benz} benzer.\n\n"
+            f"sezon boyunca %{benz} benzer bir profil çiziyor.\n\n"
             f"İkisinden hangisini seçerdin? 👇\n\n#SüperLig #Futbol")
 
 

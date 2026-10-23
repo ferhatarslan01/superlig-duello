@@ -27,19 +27,20 @@ MIN_DAKIKA = 450  # 5 mac civari; altindaki oyuncularin orani guvenilmez
 OZELLIK = ["totalGoals", "goalAssists", "totalShots", "shotsOnTarget", "totalPasses",
            "effectiveTackles", "interceptions", "foulsCommitted", "foulsSuffered"]
 
-SATIRLAR = [  # (alan, etiket, tur)   tur: p90 = 90 dk basina, yuzde, sayi
-    ("totalGoals", "GOL / 90", "p90"),
-    ("goalAssists", "ASİST / 90", "p90"),
-    ("totalShots", "ŞUT / 90", "p90"),
-    ("shotsOnTarget", "İSABETLİ ŞUT / 90", "p90"),
+SATIRLAR = [  # (alan, etiket, tur)   tur: sayi = sezon toplami, yuzde
+    ("appearances", "MAÇ", "sayi"),
+    ("totalGoals", "GOL", "sayi"),
+    ("goalAssists", "ASİST", "sayi"),
+    ("totalShots", "ŞUT", "sayi"),
+    ("shotsOnTarget", "İSABETLİ ŞUT", "sayi"),
     ("passPct", "PAS İSABETİ", "yuzde"),
-    ("effectiveTackles", "TOP ÇALMA / 90", "p90"),
-    ("interceptions", "TOP KESME / 90", "p90"),
-    ("foulsCommitted", "FAUL / 90", "p90"),
+    ("effectiveTackles", "TOP ÇALMA", "sayi"),
+    ("interceptions", "TOP KESME", "sayi"),
+    ("foulsCommitted", "FAUL", "sayi"),
     ("yellowCards", "SARI KART", "sayi"),
     ("redCards", "KIRMIZI KART", "sayi"),
 ]
-KOTU = {"foulsCommitted", "yellowCards", "redCards"}
+KOTU = {"foulsCommitted", "yellowCards", "redCards", "appearances"}
 
 
 def sezon_verisi(yenile=False):
