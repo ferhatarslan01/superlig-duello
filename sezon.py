@@ -22,7 +22,7 @@ KLASOR = Path(__file__).parent
 VERI = KLASOR / "data"
 OUT = KLASOR / "out"
 SEZON = 2026
-MIN_DAKIKA = 90  # en az 1 mac; kisa sureli oyuncularin 90 dk oranlari oynak olabilir
+MIN_DAKIKA = 90  # bundan FAZLA oynayanlar karsilastirmaya girer (tam 90 dk dahil degil)
 
 # 90 dakika basina karsilastirilan alanlar (benzerlik hesabi icin)
 OZELLIK = ["totalGoals", "goalAssists", "totalShots", "shotsOnTarget", "totalPasses",
@@ -106,7 +106,7 @@ def _sezon_verisi_ham(yenile=False):
         except Exception:
             return None
         st = {s["name"]: s["value"] for c in r["splits"]["categories"] for s in c["stats"]}
-        if st.get("minutes", 0) < MIN_DAKIKA:
+        if st.get("minutes", 0) <= MIN_DAKIKA:
             return None
         return {"id": aid, "ad": ad, "poz": poz, "rol": ROL[poz], "takim": tad, "st": st}
 
@@ -121,7 +121,7 @@ def p90(o, alan):
     return o["st"].get(alan, 0) / o["st"]["minutes"] * 90
 
 
-MAX_SURE_FARKI = 270  # iki oyuncunun oynadigi sure farki bundan az olmali (dakika)
+MAX_SURE_FARKI = 350  # iki oyuncunun oynadigi sure farki bundan az olmali (dakika)
 MAX_MESAFE = 2.4  # ~%60 benzerlik; bundan uzak ciftler otomatik secilmez (kucuk havuzda zayif eslesmeyi onler)
 
 
@@ -279,7 +279,8 @@ def sezon_verisi(yenile=False):
     """Ham ESPN verisi + elle mevki duzeltmeleri. ESPN, orta saha oyunculari formasyon
     yuvasina gore (LM/RM...) kodluyor; yanlis kalan oyuncular data/mevki_duzeltme.json ile
     {"Oyuncu Adi": "Rol"} seklinde duzeltilir."""
-    oyuncular = orta_saha_sinifla(_sezon_verisi_ham(yenile))
+    oyuncular = [o for o in _sezon_verisi_ham(yenile) if o["st"]["minutes"] > MIN_DAKIKA]
+    oyuncular = orta_saha_sinifla(oyuncular)
     if not DUZELTME.exists():
         return oyuncular
     gecerli = set(ROL.values())
