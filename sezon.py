@@ -235,9 +235,12 @@ DUZELTME = VERI / "mevki_duzeltme.json"
 # ESPN LM/RM/CM gibi kodlari formasyon yuvasina gore verir (Kante "RM" gorunur). Bu yuzden
 # orta saha ve kanat oyunculari sezon istatistiklerinden "savunma - hucum" puanina gore siniflanir.
 ORTA_ROLLER = {"Kanat", "Yan orta saha", "Ofansif orta saha", "Merkez orta saha", "Defansif orta saha"}
-GENIS_POZ = {"LM", "RM", "AM-L", "AM-R", "LW", "RW"}   # kanatta/yanda oynayan kodlar
-SAVUNMA_ESIGI = 1.0    # puan >= bu -> defansif orta saha
-HUCUM_ESIGI = -1.0     # puan <  bu -> kanat (genis) / ofansif orta saha (merkez)
+KANAT_KODLARI = {"AM-L", "AM-R", "LW", "RW"}   # ESPN'de ofansif kanat yuvalari: her zaman kanat
+YAN_KODLARI = {"LM", "RM"}                      # yan orta saha yuvalari: gercek rol istatistikten
+YAN_SAVUNMA_ESIGI = 0.0    # LM/RM icin puan >= bu -> defansif orta saha
+YAN_KANAT_ESIGI = -1.5     # LM/RM icin puan <  bu -> kanat; aradaki -> yan orta saha
+SAVUNMA_ESIGI = 1.0        # merkez kodlari: puan >= bu -> defansif orta saha
+HUCUM_ESIGI = -1.0         # merkez kodlari: puan <  bu -> ofansif orta saha
 
 
 def _z(havuz, alan):
@@ -262,16 +265,19 @@ def orta_saha_sinifla(oyuncular):
     for o in oyuncular:
         if o["id"] not in puan:
             continue
-        if o["poz"] == "DM":
+        poz, sk = o["poz"], puan[o["id"]]
+        if poz == "DM":
             o["rol"] = "Defansif orta saha"
-            continue
-        sk, genis = puan[o["id"]], o["poz"] in GENIS_POZ
-        if sk >= SAVUNMA_ESIGI:
-            o["rol"] = "Defansif orta saha"
-        elif sk >= HUCUM_ESIGI:
-            o["rol"] = "Yan orta saha" if genis else "Merkez orta saha"
-        else:
-            o["rol"] = "Kanat" if genis else "Ofansif orta saha"
+        elif poz in KANAT_KODLARI:
+            o["rol"] = "Kanat"
+        elif poz in YAN_KODLARI:
+            o["rol"] = ("Defansif orta saha" if sk >= YAN_SAVUNMA_ESIGI
+                        else "Yan orta saha" if sk >= YAN_KANAT_ESIGI else "Kanat")
+        elif poz == "AM":
+            o["rol"] = "Merkez orta saha" if sk >= 1.5 else "Ofansif orta saha"
+        else:  # CM, CM-L, CM-R
+            o["rol"] = ("Defansif orta saha" if sk >= SAVUNMA_ESIGI
+                        else "Merkez orta saha" if sk >= HUCUM_ESIGI else "Ofansif orta saha")
     return oyuncular
 
 
