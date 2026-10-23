@@ -121,7 +121,7 @@ def p90(o, alan):
     return o["st"].get(alan, 0) / o["st"]["minutes"] * 90
 
 
-MAX_SURE_FARKI = 200  # iki oyuncunun oynadigi sure farki bundan az olmali (dakika)
+MAX_SURE_FARKI = 270  # iki oyuncunun oynadigi sure farki bundan az olmali (dakika)
 MAX_MESAFE = 2.4  # ~%60 benzerlik; bundan uzak ciftler otomatik secilmez (kucuk havuzda zayif eslesmeyi onler)
 
 
