@@ -26,7 +26,7 @@ MIN_DAKIKA = 450  # 5 mac civari; altindaki oyuncularin orani guvenilmez
 
 # 90 dakika basina karsilastirilan alanlar (benzerlik hesabi icin)
 OZELLIK = ["totalGoals", "goalAssists", "totalShots", "shotsOnTarget", "totalPasses",
-           "effectiveTackles", "interceptions", "foulsCommitted", "foulsSuffered"]
+           "effectiveTackles", "foulsCommitted", "foulsSuffered"]
 
 SATIRLAR = [  # (alan, etiket, tur)   tur: sayi = sezon toplami, yuzde
     ("appearances", "MAÇ", "sayi"),
@@ -37,7 +37,6 @@ SATIRLAR = [  # (alan, etiket, tur)   tur: sayi = sezon toplami, yuzde
     ("shotsOnTarget", "İSABETLİ ŞUT", "sayi"),
     ("passPct", "PAS İSABETİ", "yuzde"),
     ("effectiveTackles", "TOP ÇALMA", "sayi"),
-    ("interceptions", "TOP KESME", "sayi"),
     ("foulsCommitted", "FAUL", "sayi"),
     ("yellowCards", "SARI KART", "sayi"),
     ("redCards", "KIRMIZI KART", "sayi"),
@@ -83,7 +82,7 @@ def son_pozisyonlar(tid):
     return sonuc
 
 
-def sezon_verisi(yenile=False):
+def _sezon_verisi_ham(yenile=False):
     yol = VERI / f"sezon_{SEZON}.json"
     if yol.exists() and not yenile:
         return json.loads(yol.read_text(encoding="utf-8"))
@@ -225,6 +224,29 @@ def ada_gore(oyuncular, parca):
     if not bul:
         raise SystemExit(f"'{parca}' bulunamadi (en az {MIN_DAKIKA} dk oynayanlar listede)")
     return bul[0]
+
+
+DUZELTME = VERI / "mevki_duzeltme.json"
+
+
+def sezon_verisi(yenile=False):
+    """Ham ESPN verisi + elle mevki duzeltmeleri. ESPN, orta saha oyunculari formasyon
+    yuvasina gore (LM/RM...) kodluyor; yanlis kalan oyuncular data/mevki_duzeltme.json ile
+    {"Oyuncu Adi": "Rol"} seklinde duzeltilir."""
+    oyuncular = _sezon_verisi_ham(yenile)
+    if not DUZELTME.exists():
+        return oyuncular
+    gecerli = set(ROL.values())
+    duz = {fotograf.norm(k): v for k, v in json.loads(DUZELTME.read_text(encoding="utf-8")).items()
+           if not k.startswith("_")}
+    for ad, rol in duz.items():
+        if rol not in gecerli:
+            raise SystemExit(f"mevki_duzeltme.json: '{rol}' gecerli bir rol degil. Gecerli roller: {sorted(gecerli)}")
+    for o in oyuncular:
+        yeni = duz.get(fotograf.norm(o["ad"]))
+        if yeni:
+            o["rol"] = yeni
+    return oyuncular
 
 
 def sezon_kart(rol=None, yenile=False):

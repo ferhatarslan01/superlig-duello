@@ -46,7 +46,6 @@ STATLAR = [  # (alan, etiket)
     ("accuratePasses", "İSABETLİ PAS"),
     ("passPct", "PAS İSABETİ"),
     ("effectiveTackles", "TOP ÇALMA"),
-    ("interceptions", "TOP KESME"),
     ("foulsCommitted", "YAPILAN FAUL"),
     ("yellowCards", "SARI KART"),
 ]
