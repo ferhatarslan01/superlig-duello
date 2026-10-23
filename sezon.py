@@ -30,6 +30,7 @@ OZELLIK = ["totalGoals", "goalAssists", "totalShots", "shotsOnTarget", "totalPas
 
 SATIRLAR = [  # (alan, etiket, tur)   tur: sayi = sezon toplami, yuzde
     ("appearances", "MAÇ", "sayi"),
+    ("minutes", "OYNADIĞI SÜRE (DK)", "sayi"),
     ("totalGoals", "GOL", "sayi"),
     ("goalAssists", "ASİST", "sayi"),
     ("totalShots", "ŞUT", "sayi"),
@@ -41,7 +42,7 @@ SATIRLAR = [  # (alan, etiket, tur)   tur: sayi = sezon toplami, yuzde
     ("yellowCards", "SARI KART", "sayi"),
     ("redCards", "KIRMIZI KART", "sayi"),
 ]
-KOTU = {"foulsCommitted", "yellowCards", "redCards", "appearances"}
+KOTU = {"foulsCommitted", "yellowCards", "redCards", "appearances", "minutes"}
 
 
 def sezon_verisi(yenile=False):
@@ -132,15 +133,15 @@ def kart_ciz(rol, a, b, benzerlik, yol):
     def ortala(y, m, f, renk):
         d.text(((W - d.textlength(m, font=f)) / 2, y), m, font=f, fill=renk)
 
-    ortala(44, "SÜPER LİG  |  SEZON DÜELLOSU", font(30), (160, 168, 188))
-    ortala(94, f"{buyuk(rol)} · {SEZON}-{str(SEZON + 1)[2:]}", font(40), (255, 255, 255))
-    ortala(150, f"%{benzerlik} BENZER", font(76), (46, 134, 222))
+    ortala(44, "SÜPER LİG  |  SEZON KARŞILAŞTIRMASI", font(30), (160, 168, 188))
+    ortala(94, f"{SEZON}-{str(SEZON + 1)[2:]} SEZONU", font(40), (255, 255, 255))
+    ortala(150, buyuk(rol), font(76), (46, 134, 222))
 
     D = 130
     for o, sol in ((a, True), (b, False)):
         o["_fotoim"], o["_foto"] = fotograf.foto_al(o["ad"], o["takim"])
         fotograf.daire_yapistir(img, o["_fotoim"], 70 if sol else W - 70 - D, 252, D, renk=(46, 134, 222))
-        ad, alt = buyuk(o["ad"]), f'{o["takim"]} · {int(o["st"]["minutes"])} dk'
+        ad, alt = buyuk(o["ad"]), o["takim"]
         fa, ft = sigdir(d, ad, 280, 44), sigdir(d, alt, 280, 26, False, 18)
         if sol:
             tx = 70 + D + 24
@@ -151,18 +152,18 @@ def kart_ciz(rol, a, b, benzerlik, yol):
             d.text((tx - d.textlength(ad, font=fa), 276), ad, font=fa, fill=(255, 255, 255))
             d.text((tx - d.textlength(alt, font=ft), 330), alt, font=ft, fill=(160, 168, 188))
 
-    y = 396
+    y = 392
     for alan, etiket, tur in SATIRLAR:
         va, vb = deger(a, alan, tur), deger(b, alan, tur)
         ta, tb = metin(va, tur), metin(vb, tur)
         iyi = alan not in KOTU
         ca = (255, 214, 10) if iyi and round(va, 2) > round(vb, 2) else (255, 255, 255)
         cb = (255, 214, 10) if iyi and round(vb, 2) > round(va, 2) else (255, 255, 255)
-        d.text((120, y), ta, font=font(40), fill=ca)
-        d.text((W - 120 - d.textlength(tb, font=font(40)), y), tb, font=font(40), fill=cb)
-        ortala(y + 6, etiket, font(28, False), (160, 168, 188))
-        d.line([70, y + 50, W - 70, y + 50], fill=(36, 41, 58), width=2)
-        y += 52
+        d.text((120, y), ta, font=font(36), fill=ca)
+        d.text((W - 120 - d.textlength(tb, font=font(36)), y), tb, font=font(36), fill=cb)
+        ortala(y + 5, etiket, font(27, False), (160, 168, 188))
+        d.line([70, y + 46, W - 70, y + 46], fill=(36, 41, 58), width=2)
+        y += 48
 
     ortala(H - 78, "İkisinden hangisini seçerdin?", font(36), (255, 255, 255))
     kaynaklar = sorted({o["_foto"] for o in (a, b) if o["_foto"]})

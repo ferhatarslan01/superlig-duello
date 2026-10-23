@@ -37,6 +37,7 @@ ROL = {
 ROL_SIRA = ["Forvet", "Kanat", "Ön libero", "Orta saha", "Bek", "Stoper", "Kaleci"]
 
 STATLAR = [  # (alan, etiket)
+    ("minutes", "OYNADIĞI SÜRE (DK)"),
     ("totalGoals", "GOL"),
     ("goalAssists", "ASİST"),
     ("totalShots", "ŞUT"),
@@ -48,10 +49,10 @@ STATLAR = [  # (alan, etiket)
     ("foulsCommitted", "YAPILAN FAUL"),
     ("yellowCards", "SARI KART"),
 ]
-KALECI_STATLAR = [("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"),
+KALECI_STATLAR = [("minutes", "OYNADIĞI SÜRE (DK)"), ("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"),
                   ("accuratePasses", "İSABETLİ PAS"), ("passPct", "PAS İSABETİ"),
                   ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-KOTU = {"foulsCommitted", "yellowCards", "redCards", "goalsConceded"}
+KOTU = {"foulsCommitted", "yellowCards", "redCards", "goalsConceded", "minutes"}
 CORE = "https://sports.core.api.espn.com/v2/sports/soccer/leagues/" + LIG
 
 
@@ -190,7 +191,7 @@ def kart_ciz(ev, rol, oa, ob, yol):
             d.text((tx - d.textlength(takim, font=ft), 372), takim, font=ft, fill=(160, 168, 188))
 
     statlar = KALECI_STATLAR if rol == "Kaleci" else STATLAR
-    y = 440
+    y = 432
     for alan, etiket in statlar:
         va, vb = oa["st"].get(alan, 0), ob["st"].get(alan, 0)
         if alan == "passPct":
@@ -201,12 +202,12 @@ def kart_ciz(ev, rol, oa, ob, yol):
         iyi = alan not in KOTU
         ca = (255, 214, 10) if iyi and va > vb else (255, 255, 255)
         cb = (255, 214, 10) if iyi and vb > va else (255, 255, 255)
-        d.text((120, y), ta_, font=font(40), fill=ca)
-        wb = d.textlength(tb_, font=font(40))
-        d.text((W - 120 - wb, y), tb_, font=font(40), fill=cb)
-        ortala(y + 6, etiket, font(30, False), (160, 168, 188))
-        d.line([70, y + 50, W - 70, y + 50], fill=(36, 41, 58), width=2)
-        y += 52
+        d.text((120, y), ta_, font=font(36), fill=ca)
+        wb = d.textlength(tb_, font=font(36))
+        d.text((W - 120 - wb, y), tb_, font=font(36), fill=cb)
+        ortala(y + 5, etiket, font(27, False), (160, 168, 188))
+        d.line([70, y + 46, W - 70, y + 46], fill=(36, 41, 58), width=2)
+        y += 48
 
     ortala(H - 78, "Sence bu düelloyu kim kazandı?", font(36), (255, 255, 255))
     kaynaklar = sorted({o["_foto"] for o in (oa, ob) if o["_foto"]})
