@@ -25,6 +25,7 @@ SEZON = 2026
 MIN_DAKIKA = 90  # bundan FAZLA oynayanlar karsilastirmaya girer (tam 90 dk dahil degil)
 
 # 90 dakika basina karsilastirilan alanlar (benzerlik hesabi icin)
+KALECI_OZELLIK = ["saves", "goalsConceded", "accuratePasses", "totalPasses"]
 OZELLIK = ["totalGoals", "goalAssists", "totalShots", "shotsOnTarget", "totalPasses",
            "effectiveTackles", "foulsCommitted", "foulsSuffered"]
 
@@ -125,8 +126,12 @@ MAX_SURE_FARKI = 350  # iki oyuncunun oynadigi sure farki bundan az olmali (daki
 MAX_MESAFE = 2.4  # ~%60 benzerlik; bundan uzak ciftler otomatik secilmez (kucuk havuzda zayif eslesmeyi onler)
 
 
+def ozellikler(rol):
+    return KALECI_OZELLIK if rol == "Kaleci" else OZELLIK
+
+
 def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
-    roller = [rol] if rol else [r for r in ROL_SIRA if r != "Kaleci"]
+    roller = [rol] if rol else list(ROL_SIRA)
     en = None
     for r in roller:
         grup = [o for o in oyuncular if o["rol"] == r]
@@ -134,7 +139,7 @@ def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
             continue
         # ozellik basina standart sapma ile olcekle
         std = {}
-        for f in OZELLIK:
+        for f in ozellikler(r):
             v = [p90(o, f) for o in grup]
             m = sum(v) / len(v)
             std[f] = (sum((x - m) ** 2 for x in v) / len(v)) ** 0.5 or 1.0
@@ -142,7 +147,7 @@ def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
             for b in grup[i + 1:]:
                 if a["takim"] == b["takim"] or frozenset((a["id"], b["id"])) in yasak:
                     continue
-                dist = sum(((p90(a, f) - p90(b, f)) / std[f]) ** 2 for f in OZELLIK) ** 0.5
+                dist = sum(((p90(a, f) - p90(b, f)) / std[f]) ** 2 for f in ozellikler(r)) ** 0.5
                 # her ikisi de en az bir "olay" uretmis olsun (cok sessiz ciftler bos kart olur)
                 canli = a["st"].get("totalGoals", 0) + a["st"].get("goalAssists", 0) + \
                     b["st"].get("totalGoals", 0) + b["st"].get("goalAssists", 0)
@@ -178,6 +183,11 @@ SEZON_SATIRLARI = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShot
                    ("yellowCards", "SARI KART"), ("redCards", "KIRMIZI KART")]
 
 
+SEZON_KALECI_SATIRLARI = [("appearances", "MAÇ"), ("saves", "KURTARIŞ"),
+                          ("cleanSheet", "GOL YEMEDEN BİTEN MAÇ"), ("saveRate", "KURTARIŞ ORANI"),
+                          ("accuratePasses", "İSABETLİ PAS")]
+
+
 def kart_ciz(rol, a, b, benzerlik, yol):
     import kart_v2
 
@@ -186,7 +196,7 @@ def kart_ciz(rol, a, b, benzerlik, yol):
                 "satir2": f'{int(o["st"].get("appearances", 0))} maç · {int(o["st"]["minutes"])} dk'}
     ka, kb = oyuncu(a), oyuncu(b)
     kart_v2.ciz(yol, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", f"{SEZON}-{str(SEZON + 1)[2:]} sezonu", ka, kb,
-                SEZON_SATIRLARI, "İkisinden hangisini seçerdin?", kotu=KOTU)
+                SEZON_KALECI_SATIRLARI if rol == "Kaleci" else SEZON_SATIRLARI, "İkisinden hangisini seçerdin?", kotu=KOTU)
     a["_foto"], b["_foto"] = ka["_foto"], kb["_foto"]
 
 
@@ -307,11 +317,11 @@ def main():
         a, b = ada_gore(oyuncular, ad[0]), ada_gore(oyuncular, ad[1])
         grup = [o for o in oyuncular if o["rol"] == a["rol"]]
         std = {}
-        for f in OZELLIK:
+        for f in ozellikler(a["rol"]):
             v = [p90(o, f) for o in grup]
             m = sum(v) / len(v)
             std[f] = (sum((x - m) ** 2 for x in v) / len(v)) ** 0.5 or 1.0
-        dist = sum(((p90(a, f) - p90(b, f)) / std[f]) ** 2 for f in OZELLIK) ** 0.5
+        dist = sum(((p90(a, f) - p90(b, f)) / std[f]) ** 2 for f in ozellikler(a["rol"])) ** 0.5
         benz = max(0, min(100, round(100 * (1 - dist / 6))))
         OUT.mkdir(exist_ok=True)
         yol = OUT / f"sezon_{a['id']}_{b['id']}.png"

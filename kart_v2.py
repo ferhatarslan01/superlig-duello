@@ -66,14 +66,23 @@ def takim_adi(ad):
     return TAKIM_ADLARI.get(fotograf.norm(ad).replace("  ", " "), ad)
 
 
+YUZDE_ALANLARI = {"passPct", "saveRate"}
+
+
 def _deger(o, alan):
+    st = o["st"]
+    if alan == "saveRate":   # kurtaris orani = kurtaris / (kurtaris + yenen gol); veri yoksa None
+        n = st.get("saves", 0) + st.get("goalsConceded", 0)
+        return st.get("saves", 0) / n * 100 if n else None
     if alan == "passPct":
-        return o["st"].get("passPct", 0) * 100
-    return o["st"].get(alan, 0)
+        return st.get("passPct", 0) * 100
+    return st.get(alan, 0)
 
 
 def _metin(v, alan):
-    return f"%{round(v)}" if alan == "passPct" else str(int(v))
+    if v is None:
+        return "–"
+    return f"%{round(v)}" if alan in YUZDE_ALANLARI else str(int(v))
 
 
 def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
@@ -108,21 +117,24 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
     ortala(188, "VS", font(52), BEYAZ)
 
     # istatistik satirlari
-    y, h = 478, 68
+    y0 = 478
+    h = 68 if len(satirlar) >= 7 else 90   # az satirda satirlar genisler
+    off = (h - 68) / 2
     fn, fe = font(50), font(30, False)
+    y = y0
     for alan, etiket in satirlar:
         va, vb = _deger(a, alan), _deger(b, alan)
         ta, tb = _metin(va, alan), _metin(vb, alan)
-        iyi = alan not in kotu
+        iyi = alan not in kotu and va is not None and vb is not None
         kazanan_a = iyi and round(va, 2) > round(vb, 2)
         kazanan_b = iyi and round(vb, 2) > round(va, 2)
         for t, cx, renk, kazandi in ((ta, 200, KIRMIZI, kazanan_a), (tb, W - 200, MAVI, kazanan_b)):
             w = d.textlength(t, font=fn)
             if kazandi:
                 pw = max(w + 44, 120)
-                d.rounded_rectangle([cx - pw / 2, y + 2, cx + pw / 2, y + h - 6], 14, fill=renk)
-            d.text((cx - w / 2, y - 1), t, font=fn, fill=BEYAZ)
-        ortala(y + 14, etiket, fe, ETIKET)
+                d.rounded_rectangle([cx - pw / 2, y + off + 2, cx + pw / 2, y + off + 62], 14, fill=renk)
+            d.text((cx - w / 2, y + off - 1), t, font=fn, fill=BEYAZ)
+        ortala(y + off + 14, etiket, sigdir(d, etiket, 380, 30, False, 22), ETIKET)
         d.line([60, y + h - 3, W - 60, y + h - 3], fill=CIZGI, width=2)
         y += h
 

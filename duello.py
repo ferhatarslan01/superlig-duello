@@ -169,8 +169,8 @@ def sigdir(d, metin, max_w, boyut, kalin=True, en_kucuk=26):
 MAC_SATIRLARI = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
                  ("shotsOnTarget", "İSABETLİ ŞUT"), ("passPct", "PAS İSABETİ"),
                  ("effectiveTackles", "TOP ÇALMA"), ("yellowCards", "SARI KART")]
-MAC_KALECI_SATIRLARI = [("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"), ("passPct", "PAS İSABETİ"),
-                        ("accuratePasses", "İSABETLİ PAS"), ("yellowCards", "SARI KART")]
+MAC_KALECI_SATIRLARI = [("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"), ("saveRate", "KURTARIŞ ORANI"),
+                        ("accuratePasses", "İSABETLİ PAS"), ("passPct", "PAS İSABETİ")]
 
 
 def kart_ciz(ev, rol, oa, ob, yol):
