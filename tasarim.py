@@ -1,12 +1,13 @@
 """Sezon karsilastirma karti tasarim denemeleri (A, B, C).
 
-  python tasarim.py "Salah" "Trossard"      # uc tasarimi out/ornek_A.png, _B, _C olarak uretir
+  python tasarim.py "Salah" "Trossard"      # tasarimlari out/ornek_A.png ... _D olarak uretir
 """
 import sys
 
 from PIL import Image, ImageDraw
 
 import fotograf
+import sablon
 import sezon
 from duello import HESAP, buyuk, font, sigdir
 
@@ -151,7 +152,8 @@ def stil_c(a, b, yol):
     img.save(yol)
 
 
-STILLER = {"A": stil_a, "B": stil_b, "C": stil_c}
+STILLER = {"A": stil_a, "B": stil_b, "C": stil_c,
+           "D": lambda a, b, yol: sablon.ciz(a["rol"], a, b, yol)}  # D: StatDuel 4:5 sablonu (sezon karti)
 
 if __name__ == "__main__":
     oy = sezon.sezon_verisi()

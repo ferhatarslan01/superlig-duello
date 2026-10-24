@@ -3,3 +3,4 @@ __pycache__/
 .env
 data/sezon_*.json
 data/foto_cache/
+logo/out/
