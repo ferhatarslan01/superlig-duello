@@ -255,25 +255,33 @@ def mod_liderler(dry, zorla=False):
             durum_yaz(durum)   # her gonderiden sonra kaydet: yarida kalirsa kalan(lar) tekrar denenir
 
 
-ONCE_MIN_DK = int(os.environ.get("ONCE_MIN_DK", "20"))     # maca en az bu kadar dakika varken
-ONCE_MAX_DK = int(os.environ.get("ONCE_MAX_DK", "240"))    # ve en fazla bu kadar dakika kala paylas
-MAX_MAC_PER_RUN = 2        # bir calismada en fazla bu kadar mac icin (her mac icin tek kart)
+ONCE_MIN_DK = int(os.environ.get("ONCE_MIN_DK", "20"))     # maca en az bu kadar dakika varken paylas
+ONCE_MAX_DK = int(os.environ.get("ONCE_MAX_DK", "240"))    # buyuk-4 maclari icin: en fazla bu kadar dakika kala basla
+DIGER_ARALIK_DK = int(os.environ.get("DIGER_ARALIK_DK", "90"))   # diger maclarin kartlari arasi en az bu kadar dakika
+DIGER_ACIL_DK = 120        # diger maca bu kadar dakikadan az kaldiysa aralik kurali aranmaz
+MAX_KART_PER_RUN = 2       # bir calismada toplam en fazla bu kadar kart
 BUYUK4 = {"galatasaray", "fenerbahce", "besiktas", "trabzonspor"}
 KART_DERBI = 7             # iki takim da buyuk 4'ten ise
 KART_BUYUK = 3             # buyuk 4'ten yalnizca biri oynuyorsa
 KART_DIGER = 2             # diger maclar
 
 
-def hedef_kart(ev_s, dep):
+def buyuk_sayisi(ev_s, dep):
     import fotograf
-    buyuk = sum(fotograf.norm(t) in BUYUK4 for t in (ev_s, dep))
-    return KART_DERBI if buyuk == 2 else KART_BUYUK if buyuk == 1 else KART_DIGER
+    return sum(fotograf.norm(t) in BUYUK4 for t in (ev_s, dep))
 
 
-def yaklasan_maclar():
-    """Baslamamis ve baslamasina [ONCE_MIN_DK, ONCE_MAX_DK] dakika kalan maclar: [(olay, baslangic_utc)]."""
+def hedef_kart(ev_s, dep):
+    b = buyuk_sayisi(ev_s, dep)
+    return KART_DERBI if b == 2 else KART_BUYUK if b == 1 else KART_DIGER
+
+
+def bugunun_maclari():
+    """Bugun (TRT) oynanacak, baslamamis ve baslamasina en az ONCE_MIN_DK kalan maclar:
+    [(olay, baslangic_utc, kalan_dk)], baslangic saatine gore sirali."""
     simdi = datetime.now(timezone.utc)
-    bulunan = []
+    bugun_trt = (simdi + timedelta(hours=3)).date()
+    bulunan = {}
     for g in range(2):
         v = duello.get(f"{duello.API}/scoreboard?dates={simdi + timedelta(days=g):%Y%m%d}")
         for e in v.get("events", []):
@@ -281,9 +289,9 @@ def yaklasan_maclar():
                 continue
             bas = datetime.fromisoformat(e["date"].replace("Z", "+00:00"))
             kalan = (bas - simdi).total_seconds() / 60
-            if ONCE_MIN_DK <= kalan <= ONCE_MAX_DK and e["id"] not in {x["id"] for x, _ in bulunan}:
-                bulunan.append((e, bas))
-    return sorted(bulunan, key=lambda x: x[1])
+            if (bas + timedelta(hours=3)).date() == bugun_trt and kalan >= ONCE_MIN_DK:
+                bulunan[e["id"]] = (e, bas, kalan)
+    return sorted(bulunan.values(), key=lambda x: x[1])
 
 
 def oncesi_metni(ev_s, dep, bas, a, b, k, n):
@@ -306,19 +314,45 @@ def _oncesi_durum(durum):
     return o
 
 
+def sirali_adaylar(maclar, ilerleme):
+    """Bu calismada kart verilebilecek maclar, oncelik sirasiyla.
+    1) Buyuk 4 maclari (maca ONCE_MAX_DK kala acilir), baslangic saatine gore.
+    2) Diger maclar (gun icinde istenen saatte), baslangic saatine gore."""
+    buyukler, digerleri = [], []
+    for e, bas, kalan in maclar:
+        if ilerleme.get(e["id"], {}).get("bitti"):
+            continue
+        c = e["competitions"][0]["competitors"]
+        ev_s = next(t for t in c if t["homeAway"] == "home")["team"]["displayName"]
+        dep = next(t for t in c if t["homeAway"] == "away")["team"]["displayName"]
+        if buyuk_sayisi(ev_s, dep) >= 1:
+            if kalan <= ONCE_MAX_DK:
+                buyukler.append((e, bas, kalan, ev_s, dep))
+        else:
+            digerleri.append((e, bas, kalan, ev_s, dep))
+    return buyukler + digerleri
+
+
 def mod_oncesi(dry):
     from kart_v2 import takim_adi
     durum = durum_oku()
     ilerleme = _oncesi_durum(durum)
-    liste = [(e, bas) for e, bas in yaklasan_maclar() if not ilerleme.get(e["id"], {}).get("bitti")][:MAX_MAC_PER_RUN]
-    if not liste:
-        print("Maca yaklasan, kart sirasi bekleyen mac yok")
+    simdi = datetime.now(timezone.utc)
+    adaylar = sirali_adaylar(bugunun_maclari(), ilerleme)
+    if not adaylar:
+        print("Bugun kart sirasi bekleyen mac yok")
         return
-    for e, bas in liste:
-        c = e["competitions"][0]["competitors"]
-        ev_s = next(t for t in c if t["homeAway"] == "home")["team"]["displayName"]
-        dep = next(t for t in c if t["homeAway"] == "away")["team"]["displayName"]
+    son_diger = durum.get("son_diger")
+    son_diger = datetime.fromisoformat(son_diger) if son_diger else None
+    atilan = 0
+    for e, bas, kalan, ev_s, dep in adaylar:
+        if atilan >= MAX_KART_PER_RUN:
+            break
         n = hedef_kart(ev_s, dep)
+        diger = buyuk_sayisi(ev_s, dep) == 0
+        if diger and son_diger and (simdi - son_diger).total_seconds() / 60 < DIGER_ARALIK_DK and kalan > DIGER_ACIL_DK:
+            print(f"{e['id']}: diger mac, son diger kartin uzerinden {DIGER_ARALIK_DK} dk gecmedi; sonra")
+            continue
         p = ilerleme.setdefault(e["id"], {"yapilan": 0, "oyuncular": [], "roller": {}, "bitti": False})
         if p["yapilan"] >= n:
             p["bitti"] = True
@@ -337,15 +371,23 @@ def mod_oncesi(dry):
             continue
         yol, rol, a, b, _ = sonuc
         k = p["yapilan"] + 1
-        if paylas(oncesi_metni(ev_s, dep, bas, a, b, k, n), yol, dry) and not dry:
+        if paylas(oncesi_metni(ev_s, dep, bas, a, b, k, n), yol, dry):
+            atilan += 1
+            if dry:
+                continue
             sezon.paylasildi_isaretle(a, b)
             p["yapilan"] = k
             p["oyuncular"] += [str(a["id"]), str(b["id"])]
             p["roller"][rol] = p["roller"].get(rol, 0) + 1
             p["bitti"] = k >= n
+            if diger:
+                son_diger = simdi
+                durum["son_diger"] = simdi.isoformat()
             for eski in list(ilerleme)[:-100]:   # sozluk sismesin
                 ilerleme.pop(eski, None)
             durum_yaz(durum)
+            if diger:
+                break   # diger maclardan calisma basina tek kart: gun icine dagilsin
 
 
 def main():

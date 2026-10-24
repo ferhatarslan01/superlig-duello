@@ -7,7 +7,7 @@ Her şey GitHub Actions üzerinde çalışır.
 |---|---|---|
 | **Maç sonu düellosu**: aynı rolde oynayan karşı oyuncular (gol, asist, şut, pas isabeti, top çalma...) | Maç saatlerinde 30 dakikada bir yeni biten maçı kontrol eder | `python post.py mac` |
 | **Haftalık liderler**: gol krallığı, asist krallığı, kartlar (3 görsel) | Her salı 20:00 TRT | `python post.py liderler` |
-| **Maç öncesi karşılaştırma**: o maçın iki takımından aynı mevkideki dikkat çekici oyuncuların sezon karşılaştırması; derbide (iki takım da büyük 4) 7 kart, büyük 4'ün diğer takımlarla maçında 3 kart, diğer maçlarda 2 kart | Maça 4 saat kala başlayıp 30 dakikada bir, her seferinde 1 kart | `python post.py oncesi` |
+| **Maç öncesi karşılaştırma**: o maçın iki takımından aynı mevkideki dikkat çekici oyuncuların sezon karşılaştırması. Derbide (iki takım da büyük 4) 7 kart, büyük 4'ün diğer takımlarla maçında 3 kart, diğer maçlarda 2 kart. **Öncelik büyük 4 maçlarında** (maça 4 saat kala, 30 dk'da bir); diğer maçların kartları maç saatine bağlı kalmadan gün içine 90 dk arayla dağıtılır | 30 dk'da bir kontrol | `python post.py oncesi` |
 | **Sezon karşılaştırması** (elle, isteğe bağlı iki oyuncu) | Otomatik değil | `python post.py sezon Ad1 Ad2` |
 | *(eski)* Sezon düellosu: 90 dk başına istatistiği en benzer iki oyuncu | Her perşembe 20:00 TRT | `python post.py sezon` |
 
