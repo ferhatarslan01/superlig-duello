@@ -39,7 +39,7 @@ def _kart_ikonu(d, x, y, renk, w=34, h=46):
     d.rounded_rectangle([x, y, x + w, y + h], 6, fill=renk)
 
 
-def ciz(tur, liste, yol):
+def ciz(tur, liste, yol, ust="SÜPER LİG  ·  2026-27 SEZONU"):
     basliklar = {"gol": ("GOL KRALLIĞI", KIRMIZI), "asist": ("ASİST KRALLIĞI", MAVI),
                  "kart": ("KART LİDERLERİ", SARI)}
     baslik, renk = basliklar[tur]
@@ -50,7 +50,7 @@ def ciz(tur, liste, yol):
     def ortala(y, m, f, c):
         d.text(((W - d.textlength(m, font=f)) / 2, y), m, font=f, fill=c)
 
-    ortala(24, "SÜPER LİG  ·  2026-27 SEZONU", font(28), SOLUK)
+    ortala(24, ust, font(28), SOLUK)
     ortala(62, baslik, font(84), renk)
 
     y0, h = 178, 148

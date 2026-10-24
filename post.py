@@ -5,7 +5,8 @@ Kullanim:
   python post.py mac              # yeni biten maclar icin duello karti
   python post.py sezon            # haftalik sezon karsilastirmasi
   python post.py sezon Osimhen Muriqi   # belirli iki oyuncu
-  python post.py liderler         # sali: gol krali, asist krali, kartlar (3 gorsel)
+  python post.py liderler         # sali: Super Lig gol krali, asist krali, kartlar (3 ayri gonderi)
+  python post.py avrupa           # persembe aksami: Sampiyonlar/Avrupa/Konferans Ligi liderleri (9 kart)
   ... --dry-run                   # kart + metin uretir, hicbir sey gondermez / kaydetmez
 
 Ortam degiskenleri (GitHub Actions secrets): BUFFER_API_KEY, BUFFER_CHANNEL_ID
@@ -390,6 +391,64 @@ def mod_oncesi(dry):
                 break   # diger maclardan calisma basina tek kart: gun icine dagilsin
 
 
+AVRUPA_SIRA = [(lig, tur) for lig in ("champions", "europa", "conf") for tur in ("gol", "asist", "kart")]
+AVRUPA_BASLIK = {"gol": "gol krallığı", "asist": "asist krallığı", "kart": "kart liderleri"}
+AVRUPA_EMOJI = {"gol": "⚽", "asist": "🅰️", "kart": "🟨🟥"}
+
+
+def avrupa_metni(lig, tur, liste):
+    import avrupa
+    _, ad, etiket = avrupa.LIGLER[lig]
+    ad = {"ŞAMPİYONLAR LİGİ": "Şampiyonlar Ligi", "AVRUPA LİGİ": "Avrupa Ligi", "KONFERANS LİGİ": "Konferans Ligi"}[ad]
+
+    def deger(o):
+        st = o["st"]
+        if tur == "gol":
+            return str(int(st.get("totalGoals", 0)))
+        if tur == "asist":
+            return str(int(st.get("goalAssists", 0)))
+        return f"{int(st.get('yellowCards', 0))}🟨 {int(st.get('redCards', 0))}🟥"
+    for n in (5, 4, 3):
+        satirlar = [f"{i}. {o['ad']} ({o['takim']}) {deger(o)}" for i, o in enumerate(liste[:n], 1)]
+        m = "\n\n".join([f"{AVRUPA_EMOJI[tur]} {ad} {AVRUPA_BASLIK[tur]} · 2026-27", "\n".join(satirlar), etiket])
+        if x_uzunluk(m) <= 280:
+            return m
+    return m
+
+
+def mod_avrupa(dry, zorla=False):
+    """Persembe aksami: Sampiyonlar/Avrupa/Konferans Ligi gol, asist ve kart liderleri.
+    Her calismada tek kart (9 kart); hangilerinin gittigi hafta bazinda kaydedilir."""
+    import avrupa
+    import kart_lider
+    hafta = datetime.now(timezone.utc).strftime("%G-W%V")
+    durum = durum_oku()
+    kayit = durum.get("avrupa") or {}
+    gonderilen = set(kayit.get("gonderilen", [])) if kayit.get("hafta") == hafta and not zorla else set()
+    sirada = [(l, t) for l, t in AVRUPA_SIRA if f"{l}:{t}" not in gonderilen]
+    if not sirada:
+        print(f"{hafta} haftasinin Avrupa liderleri zaten paylasildi")
+        return
+    for lig, tur in sirada:
+        liste = avrupa.liderler(lig)[tur]
+        anahtar = f"{lig}:{tur}"
+        if not liste:
+            print(f"{anahtar}: veri yok, atlandi")
+            gonderilen.add(anahtar)
+            continue
+        yol = Path(sezon.OUT) / f"avrupa_{lig}_{tur}.png"
+        Path(sezon.OUT).mkdir(exist_ok=True)
+        kart_lider.ciz(tur, liste, yol, ust=f"{avrupa.LIGLER[lig][1]}  ·  2026-27")
+        if paylas(avrupa_metni(lig, tur, liste), yol, dry) and not dry:
+            gonderilen.add(anahtar)
+            durum["avrupa"] = {"hafta": hafta, "gonderilen": sorted(gonderilen)}
+            durum_yaz(durum)
+        break   # calisma basina tek kart: persembe aksamina dagilsin
+    if not dry:
+        durum["avrupa"] = {"hafta": hafta, "gonderilen": sorted(gonderilen)}
+        durum_yaz(durum)
+
+
 def main():
     args = sys.argv[1:]
     dry = "--dry-run" in args
@@ -400,6 +459,8 @@ def main():
         mod_sezon(dry, [a for a in args[1:] if not a.startswith("--")] if args and args[0] == "sezon" else ())
     elif mod == "oncesi":
         mod_oncesi(dry)
+    elif mod == "avrupa":
+        mod_avrupa(dry, zorla="--zorla" in args)
     elif mod == "liderler":
         mod_liderler(dry, zorla="--zorla" in args)
     else:
