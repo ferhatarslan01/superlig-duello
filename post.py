@@ -259,13 +259,15 @@ ONCE_MIN_DK = int(os.environ.get("ONCE_MIN_DK", "20"))     # maca en az bu kadar
 ONCE_MAX_DK = int(os.environ.get("ONCE_MAX_DK", "240"))    # ve en fazla bu kadar dakika kala paylas
 MAX_MAC_PER_RUN = 2        # bir calismada en fazla bu kadar mac icin (her mac icin tek kart)
 BUYUK4 = {"galatasaray", "fenerbahce", "besiktas", "trabzonspor"}
-KART_BUYUK = 7             # buyuk 4'ten biri oynuyorsa mac basina kart sayisi
+KART_DERBI = 7             # iki takim da buyuk 4'ten ise
+KART_BUYUK = 3             # buyuk 4'ten yalnizca biri oynuyorsa
 KART_DIGER = 2             # diger maclar
 
 
 def hedef_kart(ev_s, dep):
     import fotograf
-    return KART_BUYUK if {fotograf.norm(ev_s), fotograf.norm(dep)} & BUYUK4 else KART_DIGER
+    buyuk = sum(fotograf.norm(t) in BUYUK4 for t in (ev_s, dep))
+    return KART_DERBI if buyuk == 2 else KART_BUYUK if buyuk == 1 else KART_DIGER
 
 
 def yaklasan_maclar():
