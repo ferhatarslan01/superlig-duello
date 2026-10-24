@@ -1,6 +1,7 @@
 """Otomatik paylasim: kart uretir, `media` dalinda barindirir, Buffer ile X'e gonderir.
 
 Kullanim:
+  python post.py oncesi           # maca yaklasan maclar icin sezon karsilastirmasi
   python post.py mac              # yeni biten maclar icin duello karti
   python post.py sezon            # haftalik sezon karsilastirmasi
   python post.py sezon Osimhen Muriqi   # belirli iki oyuncu
@@ -254,6 +255,68 @@ def mod_liderler(dry, zorla=False):
             durum_yaz(durum)   # her gonderiden sonra kaydet: yarida kalirsa kalan(lar) tekrar denenir
 
 
+ONCE_MIN_DK = int(os.environ.get("ONCE_MIN_DK", "60"))     # maca en az bu kadar dakika varken
+ONCE_MAX_DK = int(os.environ.get("ONCE_MAX_DK", "240"))    # ve en fazla bu kadar dakika kala paylas
+MAX_ONCE_PER_RUN = 2
+
+
+def yaklasan_maclar():
+    """Baslamamis ve baslamasina [ONCE_MIN_DK, ONCE_MAX_DK] dakika kalan maclar: [(olay, baslangic_utc)]."""
+    simdi = datetime.now(timezone.utc)
+    bulunan = []
+    for g in range(2):
+        v = duello.get(f"{duello.API}/scoreboard?dates={simdi + timedelta(days=g):%Y%m%d}")
+        for e in v.get("events", []):
+            if e["status"]["type"]["state"] != "pre":
+                continue
+            bas = datetime.fromisoformat(e["date"].replace("Z", "+00:00"))
+            kalan = (bas - simdi).total_seconds() / 60
+            if ONCE_MIN_DK <= kalan <= ONCE_MAX_DK and (e, bas) not in bulunan:
+                bulunan.append((e, bas))
+    return bulunan
+
+
+def oncesi_metni(ev_s, dep, bas, a, b):
+    from kart_v2 import takim_adi
+    saat = (bas + timedelta(hours=3)).strftime("%H:%M")   # TRT = UTC+3
+    return "\n\n".join([
+        f"Maç öncesi · {takim_adi(ev_s)} - {takim_adi(dep)} ({saat})",
+        f"{a['ad']} ({takim_adi(a['takim'])}) vs {b['ad']} ({takim_adi(b['takim'])})",
+        "Sezon karşılaştırması 👇",
+        "#SüperLig #Futbol",
+    ])
+
+
+def mod_oncesi(dry):
+    from kart_v2 import takim_adi
+    durum = durum_oku()
+    liste = [(e, bas) for e, bas in yaklasan_maclar() if e["id"] not in durum.get("oncesi", [])][:MAX_ONCE_PER_RUN]
+    if not liste:
+        print("Maca yaklasan yeni mac yok")
+        return
+    for e, bas in liste:
+        c = e["competitions"][0]["competitors"]
+        ev_s = next(t for t in c if t["homeAway"] == "home")["team"]["displayName"]
+        dep = next(t for t in c if t["homeAway"] == "away")["team"]["displayName"]
+        try:
+            sonuc = sezon.mac_oncesi_cifti(ev_s, dep, f"{takim_adi(ev_s)} - {takim_adi(dep)}")
+        except Exception as ex:
+            print(f"{e['id']}: kart uretilemedi ({ex}); sonraki calismada tekrar denenecek", file=sys.stderr)
+            continue
+        if sonuc is None:
+            print(f"{e['id']}: eslesen oyuncu cifti yok, atlandi")
+            if not dry:
+                durum.setdefault("oncesi", []).append(e["id"])
+                durum_yaz(durum)
+            continue
+        yol, rol, a, b, benz = sonuc
+        if paylas(oncesi_metni(ev_s, dep, bas, a, b), yol, dry) and not dry:
+            sezon.paylasildi_isaretle(a, b)
+            durum.setdefault("oncesi", []).append(e["id"])
+            durum["oncesi"] = durum["oncesi"][-200:]
+            durum_yaz(durum)
+
+
 def main():
     args = sys.argv[1:]
     dry = "--dry-run" in args
@@ -262,6 +325,8 @@ def main():
         mod_mac(dry)
     elif mod == "sezon":
         mod_sezon(dry, [a for a in args[1:] if not a.startswith("--")] if args and args[0] == "sezon" else ())
+    elif mod == "oncesi":
+        mod_oncesi(dry)
     elif mod == "liderler":
         mod_liderler(dry, zorla="--zorla" in args)
     else:

@@ -140,12 +140,12 @@ def ozellikler(rol):
     return OZELLIK
 
 
-def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
-    roller = [rol] if rol else list(ROL_SIRA)
+def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE, min_grup=4, roller=None):
+    roller = roller or ([rol] if rol else list(ROL_SIRA))
     en = None
     for r in roller:
         grup = [o for o in oyuncular if o["rol"] == r]
-        if len(grup) < 4:
+        if len(grup) < min_grup:
             continue
         # ozellik basina standart sapma ile olcekle
         std = {}
@@ -198,14 +198,14 @@ SEZON_KALECI_SATIRLARI = [("appearances", "MAÇ"), ("saves", "KURTARIŞ"),
                           ("accuratePasses", "İSABETLİ PAS")]
 
 
-def kart_ciz(rol, a, b, benzerlik, yol):
+def kart_ciz(rol, a, b, benzerlik, yol, baslik=None):
     import kart_v2
 
     def oyuncu(o):
         return {"id": o["id"], "ad": o["ad"], "takim": o["takim"], "yas": o.get("yas"), "st": o["st"],
                 "satir2": None}
     ka, kb = oyuncu(a), oyuncu(b)
-    kart_v2.ciz(yol, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", f"{SEZON}-{str(SEZON + 1)[2:]} sezonu", ka, kb,
+    kart_v2.ciz(yol, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", baslik or f"{SEZON}-{str(SEZON + 1)[2:]} sezonu", ka, kb,
                 _satir.sezon_satirlari(rol), "İkisinden hangisini seçerdin?", kotu=KOTU)
     a["_foto"], b["_foto"] = ka["_foto"], kb["_foto"]
 
@@ -305,6 +305,56 @@ def sezon_kart(rol=None, yenile=False):
     yol = OUT / f"sezon_{a['id']}_{b['id']}.png"
     kart_ciz(rol_, a, b, benz, yol)
     return yol, rol_, a, b, benz
+
+
+ROL_AGIRLIK = {"Forvet": 1.6, "Kanat": 1.5, "Ofansif orta saha": 1.4, "Yan orta saha": 1.2,
+               "Merkez orta saha": 1.1, "Defansif orta saha": 1.0, "Bek": 0.9, "Stoper": 0.9, "Kaleci": 0.6}
+ONCE_MAX_SURE_FARKI = 400   # maç oncesi: iki oyuncunun sure farki daha esnek
+
+
+def onem(o):
+    """Bir oyuncunun sezonu ne kadar dikkat cekici: mevkiye gore agirlikli sayilardan bir puan."""
+    g = o["st"].get
+    temel = g("totalGoals", 0) * 5 + g("goalAssists", 0) * 4
+    r = o["rol"]
+    if r == "Kaleci":
+        return g("saves", 0) * 0.4 + g("cleanSheet", 0) * 3
+    if r in ("Stoper", "Bek", "Defansif orta saha"):
+        return temel + g("effectiveTackles", 0) * 0.6 + g("totalClearance", 0) * 0.15 + g("minutes", 0) * 0.005
+    if r in ("Merkez orta saha", "Yan orta saha"):
+        return temel + g("effectiveTackles", 0) * 0.4 + g("accuratePasses", 0) * 0.02 + g("shotsOnTarget", 0) * 0.5
+    return temel + g("shotsOnTarget", 0) * 0.7 + g("totalShots", 0) * 0.2
+
+
+def mac_oncesi_cifti(takim_a, takim_b, baslik=None):
+    """Mac oncesi: iki takimin AYNI MEVKIDEKI en dikkat cekici oyuncularini karsilastirir.
+    Her mevkide iki takimin en yuksek 'onem' puanli oyuncusu eslesir; hucum mevkileri one gecer.
+    (yol, rol, a, b, benz) doner."""
+    na, nb = fotograf.norm(takim_a), fotograf.norm(takim_b)
+    oy = [o for o in sezon_verisi() if fotograf.norm(o["takim"]) in (na, nb)]
+    paylasilan = VERI / "paylasilan_sezon.json"
+    gecmis = json.loads(paylasilan.read_text()) if paylasilan.exists() else []
+    yasak = {frozenset(x) for x in gecmis}
+    en = None
+    for r in ROL_AGIRLIK:
+        ga = sorted([o for o in oy if o["rol"] == r and fotograf.norm(o["takim"]) == na], key=lambda o: -onem(o))
+        gb = sorted([o for o in oy if o["rol"] == r and fotograf.norm(o["takim"]) == nb], key=lambda o: -onem(o))
+        for a in ga[:3]:
+            for b in gb[:3]:
+                if frozenset((a["id"], b["id"])) in yasak:
+                    continue
+                if abs(a["st"]["minutes"] - b["st"]["minutes"]) >= ONCE_MAX_SURE_FARKI:
+                    continue
+                puan = (onem(a) + onem(b)) * ROL_AGIRLIK[r]
+                if en is None or puan > en[0]:
+                    en = (puan, r, a, b)
+    if not en:
+        return None
+    _, rol_, a, b = en
+    OUT.mkdir(exist_ok=True)
+    yol = OUT / f"sezon_{a['id']}_{b['id']}.png"
+    kart_ciz(rol_, a, b, 0, yol, baslik)
+    return yol, rol_, a, b, 0
 
 
 def cift_kart(ad1, ad2, yenile=False):

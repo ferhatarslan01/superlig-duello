@@ -1,8 +1,8 @@
 name: Sezon düellosu
 
 on:
-  schedule:
-    - cron: '0 17 * * 4' # her perşembe 20:00 TRT
+  # Haftalık otomatik paylaşım kapatıldı: sezon karşılaştırması artık maç öncesi (mac-oncesi.yml) çıkıyor.
+  # Elle çalıştırmak için (isteğe bağlı iki oyuncu adıyla) Actions > Run workflow.
   workflow_dispatch:
     inputs:
       oyuncu1:
