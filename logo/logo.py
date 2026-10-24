@@ -2,6 +2,7 @@
 
   python logo/logo.py      # logo/out/logo_1.png, logo_2.png, logo_3.png
 """
+import math
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -115,7 +116,136 @@ def logo_3():
     return im
 
 
+def _kaplama():
+    return Image.new("RGBA", (N * S, N * S), (0, 0, 0, 0))
+
+
+def _birlestir(im, kap):
+    im.paste(kap, (0, 0), kap)
+
+
+def logo_4():
+    """Radar grafigi: iki oyuncunun profili ust uste; futbol istatistiginin evrensel gorseli."""
+    im = tuval()
+    d = ImageDraw.Draw(im)
+    cx, cy, R = 540, 410, 310
+    acilar = [-90 + 60 * i for i in range(6)]
+
+    def nokta(i, oran):
+        a = math.radians(acilar[i])
+        return (cx + R * oran * math.cos(a), cy + R * oran * math.sin(a))
+
+    for seviye in (0.33, 0.66, 1.0):
+        d.polygon([p(*nokta(i, seviye)) for i in range(6)], outline=(46, 54, 78), width=3 * S)
+    for i in range(6):
+        d.line([p(cx, cy), p(*nokta(i, 1.0))], fill=(46, 54, 78), width=2 * S)
+    kap = _kaplama()
+    kd = ImageDraw.Draw(kap)
+    kirm = [0.92, 0.62, 0.82, 0.48, 0.70, 0.88]
+    mavi = [0.58, 0.90, 0.50, 0.86, 0.92, 0.56]
+    kd.polygon([p(*nokta(i, v)) for i, v in enumerate(kirm)], fill=KIRMIZI + (120,))
+    kd.polygon([p(*nokta(i, v)) for i, v in enumerate(mavi)], fill=MAVI + (120,))
+    _birlestir(im, kap)
+    d = ImageDraw.Draw(im)
+    for vals, renk in ((kirm, KIRMIZI), (mavi, MAVI)):
+        pts = [p(*nokta(i, v)) for i, v in enumerate(vals)]
+        d.line(pts + [pts[0]], fill=renk, width=6 * S, joint="curve")
+        for x, y in pts:
+            d.ellipse([x - 11 * S, y - 11 * S, x + 11 * S, y + 11 * S], fill=renk)
+    d.ellipse([p(cx - 14, cy - 14), p(cx + 14, cy + 14)], fill=SARI)
+    yaz_iki_renk(d, 540, 780, "STAT", "DUEL", f(160), BEYAZ, MAVI, aralik=10)
+    yaz_ortala(d, 540, 950, "@StatDuel", f(38), GRI)
+    return im
+
+
+def logo_5():
+    """Ust gorunum saha: sol yari kirmizi, sag yari mavi, merkez cizgisi ve sari santra noktasi."""
+    im = tuval()
+    kap = _kaplama()
+    kd = ImageDraw.Draw(kap)
+    x0, y0, x1, y1 = 170, 190, 910, 650
+    kd.rectangle([p(x0, y0), p(540, y1)], fill=KIRMIZI + (70,))
+    kd.rectangle([p(540, y0), p(x1, y1)], fill=MAVI + (70,))
+    _birlestir(im, kap)
+    d = ImageDraw.Draw(im)
+    cizgi = (225, 230, 242)
+    w = 6 * S
+    d.rounded_rectangle([p(x0, y0), p(x1, y1)], 18 * S, outline=cizgi, width=w)
+    d.line([p(540, y0), p(540, y1)], fill=cizgi, width=w)
+    d.ellipse([p(540 - 92, 420 - 92), p(540 + 92, 420 + 92)], outline=cizgi, width=w)
+    for sol in (True, False):
+        bx0, bx1 = (x0, x0 + 150) if sol else (x1 - 150, x1)
+        d.rectangle([p(bx0, 420 - 110), p(bx1, 420 + 110)], outline=cizgi, width=w)
+        kx0, kx1 = (x0, x0 + 56) if sol else (x1 - 56, x1)
+        d.rectangle([p(kx0, 420 - 52), p(kx1, 420 + 52)], outline=cizgi, width=w)
+    d.ellipse([p(540 - 20, 420 - 20), p(540 + 20, 420 + 20)], fill=SARI)
+    yaz_iki_renk(d, 540, 720, "STAT", "DUEL", f(170), BEYAZ, KIRMIZI, aralik=10)
+    yaz_ortala(d, 540, 905, "SÜPER LİG  ·  OYUNCU KARŞILAŞTIRMALARI", f(34), GRI)
+    return im
+
+
+def _kalkan_noktalar(cx=540, ust=170, alt=830, yan=290):
+    pts = [(cx - yan, ust), (cx + yan, ust), (cx + yan, ust + 330)]
+    for t in [i / 24 for i in range(1, 25)]:  # sag alt egri
+        x = (1 - t) ** 2 * (cx + yan) + 2 * (1 - t) * t * (cx + yan - 20) + t ** 2 * cx
+        y = (1 - t) ** 2 * (ust + 330) + 2 * (1 - t) * t * (alt - 120) + t ** 2 * alt
+        pts.append((x, y))
+    for t in [i / 24 for i in range(1, 25)]:  # sol alt egri
+        x = (1 - t) ** 2 * cx + 2 * (1 - t) * t * (cx - yan + 20) + t ** 2 * (cx - yan)
+        y = (1 - t) ** 2 * alt + 2 * (1 - t) * t * (alt - 120) + t ** 2 * (ust + 330)
+        pts.append((x, y))
+    return pts
+
+
+def logo_6():
+    """Kalkan rozeti: yildirim seklinde ikiye bolunmus kirmizi/mavi, ortada beyaz VS."""
+    im = tuval()
+    kalkan = _kalkan_noktalar()
+    maske = Image.new("L", (N * S, N * S), 0)
+    ImageDraw.Draw(maske).polygon([p(*q) for q in kalkan], fill=255)
+    kap = _kaplama()
+    kd = ImageDraw.Draw(kap)
+    kd.rectangle([0, 0, N * S, N * S], fill=MAVI + (255,))
+    # kirmizi sol bolge: yildirim kenarli
+    zig = [(560, 150), (470, 330), (575, 430), (440, 620), (520, 850)]
+    sol_bolge = [(0, 150), *zig, (0, 850)]
+    kd.polygon([p(*q) for q in sol_bolge], fill=KIRMIZI + (255,))
+    kd.line([p(*q) for q in zig], fill=SARI + (255,), width=14 * S, joint="curve")
+    kap.putalpha(Image.composite(kap.getchannel("A"), Image.new("L", kap.size, 0), maske))
+    im.paste(kap, (0, 0), kap)
+    d = ImageDraw.Draw(im)
+    d.line([p(*q) for q in kalkan + [kalkan[0]]], fill=BEYAZ, width=10 * S, joint="curve")
+    d.ellipse([p(540 - 128, 520 - 128), p(540 + 128, 520 + 128)], fill=ARKA, outline=BEYAZ, width=8 * S)
+    yaz_ortala(d, 540, 418, "VS", f(190), BEYAZ)
+    yaz_iki_renk(d, 540, 862, "STAT", "DUEL", f(110), BEYAZ, MAVI, aralik=8)
+    return im
+
+
+def logo_7():
+    """Karsi karsiya oklar: kirmizi > ve mavi < bir araya gelir, ortada sari top; altinda yazi."""
+    im = tuval()
+    d = ImageDraw.Draw(im)
+    kal = 118
+    def chevron(sol, renk, kayma=0):
+        # sol: ok saga bakar (>), degilse sola (<)
+        for k in range(3):
+            ox = kayma + k * 92
+            if sol:
+                pts = [(150 + ox, 190), (150 + ox + kal, 190), (150 + ox + kal + 130, 400), (150 + ox + kal, 610), (150 + ox, 610), (150 + ox + 130, 400)]
+            else:
+                pts = [(930 - ox, 190), (930 - ox - kal, 190), (930 - ox - kal - 130, 400), (930 - ox - kal, 610), (930 - ox, 610), (930 - ox - 130, 400)]
+            tonu = (255 - k * 30, 255 - k * 30, 255 - k * 30)
+            r = tuple(int(c * (1 - 0.0 * k)) for c in renk)
+            d.polygon([p(*q) for q in pts], fill=r if k == 2 else tuple(int(c * (0.45 + 0.275 * k)) for c in renk))
+    chevron(True, KIRMIZI)
+    chevron(False, MAVI)
+    d.ellipse([p(540 - 46, 400 - 46), p(540 + 46, 400 + 46)], fill=SARI)
+    yaz_iki_renk(d, 540, 690, "STAT", "DUEL", f(170), BEYAZ, MAVI, aralik=10)
+    yaz_ortala(d, 540, 880, "KARŞI KARŞIYA", f(40), GRI)
+    return im
+
+
 if __name__ == "__main__":
-    for i, fn in enumerate((logo_1, logo_2, logo_3), 1):
+    for i, fn in enumerate((logo_1, logo_2, logo_3, logo_4, logo_5, logo_6, logo_7), 1):
         kaydet(fn(), f"logo_{i}.png")
         print(OUT / f"logo_{i}.png")
