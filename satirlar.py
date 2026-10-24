@@ -21,15 +21,15 @@ _OFANSIF_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", 
 _ORTA_SAHA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
               ("passPct", "PAS İSABETİ"), ("effectiveTackles", "TOP ÇALMA"),
               ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_SAVUNMA_OS = [("effectiveTackles", "TOP ÇALMA"), ("tackleSuccess", "TOP ÇALMA BAŞARISI"),
-               ("totalClearance", "UZAKLAŞTIRMA"), ("accuratePasses", "İSABETLİ PAS"),
+_SAVUNMA_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+               ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
                ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-_STOPER = [("effectiveTackles", "TOP ÇALMA"), ("tackleSuccess", "TOP ÇALMA BAŞARISI"),
-           ("totalClearance", "UZAKLAŞTIRMA"), ("blockedShots", "BLOK"),
+_STOPER = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+           ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
            ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-_BEK = [("effectiveTackles", "TOP ÇALMA"), ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("goalAssists", "ASİST"),
-        ("totalClearance", "UZAKLAŞTIRMA"), ("passPct", "PAS İSABETİ"),
-        ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
+_BEK = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+        ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
+        ("passPct", "PAS İSABETİ"), ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
 _KALECI = [("appearances", "MAÇ"), ("saves", "KURTARIŞ"), ("cleanSheet", "GOL YEMEDEN BİTEN MAÇ"),
            ("saveRate", "KURTARIŞ ORANI"), ("gcPerMatch", "MAÇ BAŞINA YENEN GOL"),
            ("penaltyKicksSaved", "PENALTI KURTARMA"), ("accuratePasses", "İSABETLİ PAS")]
@@ -49,9 +49,9 @@ _MAC_UCLU = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "�
 _MAC_ORTA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
              ("passPct", "PAS İSABETİ"), ("effectiveTackles", "TOP ÇALMA"),
              ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_MAC_SAVUNMA = [("effectiveTackles", "TOP ÇALMA"), ("totalClearance", "UZAKLAŞTIRMA"),
-                ("blockedShots", "BLOK"), ("accuratePasses", "İSABETLİ PAS"),
-                ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
+_MAC_SAVUNMA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+                ("totalClearance", "UZAKLAŞTIRMA"), ("passPct", "PAS İSABETİ"),
+                ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
 _MAC_KALECI = [("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"), ("saveRate", "KURTARIŞ ORANI"),
                ("accuratePasses", "İSABETLİ PAS"), ("passPct", "PAS İSABETİ")]
 
