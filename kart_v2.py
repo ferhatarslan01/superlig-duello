@@ -3,6 +3,9 @@
 Tasarim ilkeleri: az satir (7), buyuk yazi, sol oyuncu = kirmizi, sag oyuncu = mavi,
 kazanan deger oyuncunun renginde dolu kutuyla gosterilir (renk korlugune dayanikli).
 """
+import json
+from pathlib import Path
+
 from PIL import Image, ImageDraw
 
 import fotograf
@@ -27,6 +30,25 @@ TAKIM_ADLARI = {
     "konyaspor": "Konyaspor", "alanyaspor": "Alanyaspor", "gaziantep fk": "Gaziantep FK",
     "kocaelispor": "Kocaelispor", "amed sfk": "Amed SFK", "erzurum bb": "Erzurum BB",
 }
+
+
+PIYASA = None
+
+
+def piyasa_degeri(ad):
+    """data/piyasa_degeri.json: {"Oyuncu Adi": milyon_euro}. Dosya yoksa/oyuncu yoksa None."""
+    global PIYASA
+    if PIYASA is None:
+        yol = Path(__file__).parent / "data" / "piyasa_degeri.json"
+        try:
+            ham = json.loads(yol.read_text(encoding="utf-8"))
+        except Exception:
+            ham = {}
+        PIYASA = {fotograf.norm(k): v for k, v in ham.items() if not k.startswith("_")}
+    v = PIYASA.get(fotograf.norm(ad))
+    if v is None:
+        return None
+    return f"€{v:.1f} mn".replace(".0 mn", " mn").replace(".", ",") if v >= 1 else f"€{round(v * 1000)} bin"
 
 
 def takim_adi(ad):
@@ -65,8 +87,9 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
         ortala(330, ad, sigdir(d, ad, 500, 52), BEYAZ, cx - 270, cx + 270)
         l1 = (f'{o["yas"]} yaş · ' if o.get("yas") else "") + takim_adi(o["takim"])
         ortala(392, l1, sigdir(d, l1, 500, 30, False, 20), ETIKET, cx - 270, cx + 270)
-        if o.get("satir2"):
-            ortala(428, o["satir2"], sigdir(d, o["satir2"], 500, 28, False, 20), SOLUK, cx - 270, cx + 270)
+        s2 = " · ".join(x for x in (o.get("satir2"), (f"Değer: {piyasa_degeri(o['ad'])}" if piyasa_degeri(o["ad"]) else None)) if x)
+        if s2:
+            ortala(428, s2, sigdir(d, s2, 520, 28, False, 20), SOLUK, cx - 270, cx + 270)
     # VS rozeti
     d.ellipse([W / 2 - 50, 172, W / 2 + 50, 272], fill=ARKA, outline=BEYAZ, width=4)
     ortala(188, "VS", font(52), BEYAZ)
@@ -90,8 +113,8 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
         d.line([60, y + h - 3, W - 60, y + h - 3], fill=CIZGI, width=2)
         y += h
 
-    ortala(H - 108, soru, font(38), BEYAZ)
+    ortala(H - 112, HESAP, font(54), BEYAZ)
     kaynaklar = sorted({o["_foto"] for o in (a, b) if o.get("_foto")})
-    alt = f"{HESAP}  ·  Veri: ESPN" + (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
+    alt = "Veri: ESPN" + (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
     ortala(H - 52, alt, font(24, False), SOLUK)
     img.save(yol)
