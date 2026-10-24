@@ -97,10 +97,10 @@ def _sezon_verisi_ham(yenile=False):
             # once son 10 macta en cok oynadigi mevki, yoksa kadro listesindeki pozisyon
             poz = son_poz[tid].get(str(a["id"])) or a.get("position", {}).get("abbreviation")
             if ROL.get(poz):
-                adaylar.append((a["id"], a["displayName"], poz, tad))
+                adaylar.append((a["id"], a["displayName"], poz, tad, a.get("age")))
 
     def cek(a):
-        aid, ad, poz, tad = a
+        aid, ad, poz, tad, yas = a
         try:
             r = get(f"{CORE}/seasons/{SEZON}/types/1/athletes/{aid}/statistics/0")
         except Exception:
@@ -108,7 +108,7 @@ def _sezon_verisi_ham(yenile=False):
         st = {s["name"]: s["value"] for c in r["splits"]["categories"] for s in c["stats"]}
         if st.get("minutes", 0) <= MIN_DAKIKA:
             return None
-        return {"id": aid, "ad": ad, "poz": poz, "rol": ROL[poz], "takim": tad, "st": st}
+        return {"id": aid, "ad": ad, "poz": poz, "rol": ROL[poz], "takim": tad, "yas": yas, "st": st}
 
     with ThreadPoolExecutor(8) as ex:
         sonuc = [o for o in ex.map(cek, adaylar) if o]
