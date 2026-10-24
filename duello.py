@@ -110,7 +110,6 @@ def oyuncular(takim, eid, sezon_rol=None):
         poz = p["position"]["abbreviation"]
         st = {s["name"]: s["value"] for s in p.get("stats", [])}
         st.update(ek_istatistik(eid, takim["team"]["id"], p["athlete"]["id"]))
-        st["puan"] = ((sezon_rol.get(str(p["athlete"]["id"])) or {}).get("st") or {}).get("puan")
         sonuc.append({
             "id": p["athlete"]["id"],
             "ad": p["athlete"]["displayName"],
