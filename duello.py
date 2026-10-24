@@ -96,7 +96,7 @@ def _sezon_rolleri():
     ESPN'in formasyon yuvasi kodu yerine bu rol kullanilir."""
     try:
         import sezon
-        return {str(o["id"]): o["rol"] for o in sezon.sezon_verisi()}
+        return {str(o["id"]): o for o in sezon.sezon_verisi()}
     except Exception:
         return {}
 
@@ -114,7 +114,8 @@ def oyuncular(takim, eid, sezon_rol=None):
             "ad": p["athlete"]["displayName"],
             "kisa": p["athlete"].get("shortName", p["athlete"]["displayName"]),
             "poz": poz,
-            "rol": sezon_rol.get(str(p["athlete"]["id"])) or ROL.get(poz),
+            "rol": (sezon_rol.get(str(p["athlete"]["id"])) or {}).get("rol") or ROL.get(poz),
+            "yas": (sezon_rol.get(str(p["athlete"]["id"])) or {}).get("yas"),
             "st": st,
         })
     return sonuc
@@ -164,68 +165,30 @@ def sigdir(d, metin, max_w, boyut, kalin=True, en_kucuk=26):
     return font(boyut, kalin)
 
 
+MAC_SATIRLARI = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
+                 ("shotsOnTarget", "İSABETLİ ŞUT"), ("passPct", "PAS İSABETİ"),
+                 ("effectiveTackles", "TOP ÇALMA"), ("yellowCards", "SARI KART")]
+MAC_KALECI_SATIRLARI = [("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"), ("passPct", "PAS İSABETİ"),
+                        ("accuratePasses", "İSABETLİ PAS"), ("yellowCards", "SARI KART")]
+
+
 def kart_ciz(ev, rol, oa, ob, yol):
-    W = H = 1080
-    img = Image.new("RGB", (W, H), (14, 17, 26))
-    d = ImageDraw.Draw(img)
-    # ust band
-    d.rectangle([0, 0, W, 8], fill=(230, 57, 70))
+    import kart_v2
+    c = ev["header"]["competitions"][0]["competitors"]
+    ev_s = next(t for t in c if t["homeAway"] == "home")
+    dep = next(t for t in c if t["homeAway"] == "away")
+    skor = (f'{kart_v2.takim_adi(ev_s["team"]["displayName"])} {ev_s["score"]}-{dep["score"]} '
+            f'{kart_v2.takim_adi(dep["team"]["displayName"])}')
 
-    comp = ev["header"]["competitions"][0]
-    takimlar = comp["competitors"]
-    ev_sahibi = next(t for t in takimlar if t["homeAway"] == "home")
-    deplasman = next(t for t in takimlar if t["homeAway"] == "away")
-    skor = f'{ev_sahibi["team"]["displayName"]} {ev_sahibi["score"]}-{deplasman["score"]} {deplasman["team"]["displayName"]}'
-
-    def ortala(y, metin, f, renk):
-        w = d.textlength(metin, font=f)
-        d.text(((W - w) / 2, y), metin, font=f, fill=renk)
-
-    ortala(48, "SÜPER LİG  |  MAÇ SONU DÜELLOSU", font(30), (160, 168, 188))
-    ortala(100, buyuk(skor), font(40), (255, 255, 255))
-    ortala(168, buyuk(rol), font(88), (230, 57, 70))
-
-    # oyuncu fotograflari ve adlari
-    D = 130
-    for o, sol in ((oa, True), (ob, False)):
-        o["_fotoim"], o["_foto"] = fotograf.foto_al(o["ad"], o["_takim"])
-        fx = 70 if sol else W - 70 - D
-        fotograf.daire_yapistir(img, o["_fotoim"], fx, 286, D)
-        ad, takim = buyuk(o["ad"]), o["_takim"]
-        fa, ft = sigdir(d, ad, 280, 44), sigdir(d, takim, 280, 28, False, 20)
-        if sol:
-            tx = 70 + D + 24
-            d.text((tx, 318), ad, font=fa, fill=(255, 255, 255))
-            d.text((tx, 372), takim, font=ft, fill=(160, 168, 188))
-        else:
-            tx = W - 70 - D - 24
-            d.text((tx - d.textlength(ad, font=fa), 318), ad, font=fa, fill=(255, 255, 255))
-            d.text((tx - d.textlength(takim, font=ft), 372), takim, font=ft, fill=(160, 168, 188))
-
-    statlar = KALECI_STATLAR if rol == "Kaleci" else STATLAR
-    y = 432
-    for alan, etiket in statlar:
-        va, vb = oa["st"].get(alan, 0), ob["st"].get(alan, 0)
-        if alan == "passPct":
-            ta_, tb_ = f"%{round(va * 100)}", f"%{round(vb * 100)}"
-        else:
-            va, vb = int(va), int(vb)
-            ta_, tb_ = str(va), str(vb)
-        iyi = alan not in KOTU
-        ca = (255, 214, 10) if iyi and va > vb else (255, 255, 255)
-        cb = (255, 214, 10) if iyi and vb > va else (255, 255, 255)
-        d.text((120, y), ta_, font=font(36), fill=ca)
-        wb = d.textlength(tb_, font=font(36))
-        d.text((W - 120 - wb, y), tb_, font=font(36), fill=cb)
-        ortala(y + 5, etiket, font(27, False), (160, 168, 188))
-        d.line([70, y + 46, W - 70, y + 46], fill=(36, 41, 58), width=2)
-        y += 48
-
-    ortala(H - 78, "Sence bu düelloyu kim kazandı?", font(36), (255, 255, 255))
-    kaynaklar = sorted({o["_foto"] for o in (oa, ob) if o["_foto"]})
-    alt = f"{HESAP}  ·  Veri: ESPN" + (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
-    ortala(H - 36, alt, font(22, False), (110, 118, 140))
-    img.save(yol)
+    def oyuncu(o):
+        dk = int(o["st"].get("minutes", 0))
+        return {"ad": o["ad"], "takim": o["_takim"], "yas": o.get("yas"), "st": o["st"],
+                "satir2": f"{dk} dk oynadı" if dk else None}
+    a, b = oyuncu(oa), oyuncu(ob)
+    satirlar = MAC_KALECI_SATIRLARI if rol == "Kaleci" else MAC_SATIRLARI
+    kart_v2.ciz(yol, "SÜPER LİG  ·  MAÇ SONU DÜELLOSU", skor, a, b, satirlar,
+                "Sence bu düelloyu kim kazandı?", kotu=KOTU)
+    oa["_foto"], ob["_foto"] = a["_foto"], b["_foto"]
 
 
 def kart_uret(eid):

@@ -132,18 +132,28 @@ def foto_notu(*oyuncular):
 
 
 def mac_metni(ev, rol, oa, ob):
+    from kart_v2 import takim_adi
     c = ev["header"]["competitions"][0]["competitors"]
     ev_s = next(t for t in c if t["homeAway"] == "home")
     dep = next(t for t in c if t["homeAway"] == "away")
-    skor = f'{ev_s["team"]["displayName"]} {ev_s["score"]}-{dep["score"]} {dep["team"]["displayName"]}'
-    return (f"{skor}\n\n{rol} düellosu: {oa['ad']} ({oa['_takim']}) vs {ob['ad']} ({ob['_takim']})\n\n"
-            f"Sence bu düelloyu kim kazandı? 👇\n\n#SüperLig #Futbol" + foto_notu(oa, ob))
+    skor = (f'{takim_adi(ev_s["team"]["displayName"])} {ev_s["score"]}-{dep["score"]} '
+            f'{takim_adi(dep["team"]["displayName"])}')
+    return "\n\n".join([
+        skor,
+        f"{oa['ad']} ({takim_adi(oa['_takim'])}) vs {ob['ad']} ({takim_adi(ob['_takim'])})",
+        "Sence bu düelloyu kim kazandı? 👇",
+        "#SüperLig #Futbol",
+    ]) + foto_notu(oa, ob)
 
 
 def sezon_metni(rol, a, b, benz):
-    return (f"{rol} · sezon karşılaştırması\n\n{a['ad']} ({a['takim']}) ile {b['ad']} ({b['takim']}) "
-            f"sezon boyunca karşı karşıya.\n\n"
-            f"İkisinden hangisini seçerdin? 👇\n\n#SüperLig #Futbol" + foto_notu(a, b))
+    from kart_v2 import takim_adi
+    return "\n\n".join([
+        "Sezon karşılaştırması",
+        f"{a['ad']} ({takim_adi(a['takim'])}) vs {b['ad']} ({takim_adi(b['takim'])})",
+        "İkisinden hangisini seçerdin? 👇",
+        "#SüperLig #Futbol",
+    ]) + foto_notu(a, b)
 
 
 # ---------- modlar ----------

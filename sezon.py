@@ -173,10 +173,21 @@ def metin(v, tur):
     return str(int(v))
 
 
+SEZON_SATIRLARI = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
+                   ("passPct", "PAS İSABETİ"), ("effectiveTackles", "TOP ÇALMA"),
+                   ("yellowCards", "SARI KART"), ("redCards", "KIRMIZI KART")]
+
+
 def kart_ciz(rol, a, b, benzerlik, yol):
-    """Kart sablon.py'deki StatDuel tasarimiyla (1080x1350) cizilir."""
-    import sablon
-    sablon.ciz(rol, a, b, yol, sezon_etiket=f"{SEZON}-{str(SEZON + 1)[2:]}")
+    import kart_v2
+
+    def oyuncu(o):
+        return {"ad": o["ad"], "takim": o["takim"], "yas": o.get("yas"), "st": o["st"],
+                "satir2": f'{int(o["st"].get("appearances", 0))} maç · {int(o["st"]["minutes"])} dk'}
+    ka, kb = oyuncu(a), oyuncu(b)
+    kart_v2.ciz(yol, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", f"{SEZON}-{str(SEZON + 1)[2:]} sezonu", ka, kb,
+                SEZON_SATIRLARI, "İkisinden hangisini seçerdin?", kotu=KOTU)
+    a["_foto"], b["_foto"] = ka["_foto"], kb["_foto"]
 
 
 def ada_gore(oyuncular, parca):
