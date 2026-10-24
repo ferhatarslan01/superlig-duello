@@ -4,3 +4,6 @@ __pycache__/
 data/sezon_*.json
 data/foto_cache/
 logo/out/
+data/tm_indirilen/
+*.tmp.py
+*.tmp

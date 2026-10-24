@@ -35,8 +35,7 @@ TAKIM_ADLARI = {
 PIYASA = None
 
 
-def piyasa_degeri(ad):
-    """data/piyasa_degeri.json: {"Oyuncu Adi": milyon_euro}. Dosya yoksa/oyuncu yoksa None."""
+def _piyasa_yukle():
     global PIYASA
     if PIYASA is None:
         yol = Path(__file__).parent / "data" / "piyasa_degeri.json"
@@ -44,11 +43,23 @@ def piyasa_degeri(ad):
             ham = json.loads(yol.read_text(encoding="utf-8"))
         except Exception:
             ham = {}
-        PIYASA = {fotograf.norm(k): v for k, v in ham.items() if not k.startswith("_")}
-    v = PIYASA.get(fotograf.norm(ad))
-    if v is None:
+        PIYASA = {"otomatik": ham.get("otomatik", {}),
+                  "elle": {fotograf.norm(k): float(v) * 1_000_000 for k, v in ham.get("elle", {}).items()}}
+    return PIYASA
+
+
+def piyasa_degeri(o):
+    """o: {"id", "ad"}. Once elle girilen deger (mn euro), yoksa Transfermarkt acik veri seti. Yoksa None."""
+    p = _piyasa_yukle()
+    eur = p["elle"].get(fotograf.norm(o["ad"]))
+    if eur is None and o.get("id") is not None:
+        eur = p["otomatik"].get(str(o["id"]))
+    if not eur:
         return None
-    return f"€{v:.1f} mn".replace(".0 mn", " mn").replace(".", ",") if v >= 1 else f"€{round(v * 1000)} bin"
+    if eur >= 1_000_000:
+        mn = f"{eur / 1_000_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+        return f"€{mn} mn"
+    return f"€{round(eur / 1000)} bin"
 
 
 def takim_adi(ad):
@@ -87,7 +98,9 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
         ortala(330, ad, sigdir(d, ad, 500, 52), BEYAZ, cx - 270, cx + 270)
         l1 = (f'{o["yas"]} yaş · ' if o.get("yas") else "") + takim_adi(o["takim"])
         ortala(392, l1, sigdir(d, l1, 500, 30, False, 20), ETIKET, cx - 270, cx + 270)
-        s2 = " · ".join(x for x in (o.get("satir2"), (f"Değer: {piyasa_degeri(o['ad'])}" if piyasa_degeri(o["ad"]) else None)) if x)
+        pd = piyasa_degeri(o)
+        o["_deger"] = pd
+        s2 = " · ".join(x for x in (o.get("satir2"), (f"Değer: {pd}" if pd else None)) if x)
         if s2:
             ortala(428, s2, sigdir(d, s2, 520, 28, False, 20), SOLUK, cx - 270, cx + 270)
     # VS rozeti
@@ -115,6 +128,6 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
 
     ortala(H - 112, HESAP, font(54), BEYAZ)
     kaynaklar = sorted({o["_foto"] for o in (a, b) if o.get("_foto")})
-    alt = "Veri: ESPN" + (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
+    alt = "Veri: ESPN" + ("  ·  Değer: Transfermarkt" if any(o.get("_deger") for o in (a, b)) else "") +         (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
     ortala(H - 52, alt, font(24, False), SOLUK)
     img.save(yol)

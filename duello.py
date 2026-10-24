@@ -111,6 +111,7 @@ def oyuncular(takim, eid, sezon_rol=None):
         st = {s["name"]: s["value"] for s in p.get("stats", [])}
         st.update(ek_istatistik(eid, takim["team"]["id"], p["athlete"]["id"]))
         sonuc.append({
+            "id": p["athlete"]["id"],
             "ad": p["athlete"]["displayName"],
             "kisa": p["athlete"].get("shortName", p["athlete"]["displayName"]),
             "poz": poz,
@@ -182,7 +183,7 @@ def kart_ciz(ev, rol, oa, ob, yol):
 
     def oyuncu(o):
         dk = int(o["st"].get("minutes", 0))
-        return {"ad": o["ad"], "takim": o["_takim"], "yas": o.get("yas"), "st": o["st"],
+        return {"id": o.get("id"), "ad": o["ad"], "takim": o["_takim"], "yas": o.get("yas"), "st": o["st"],
                 "satir2": f"{dk} dk oynadı" if dk else None}
     a, b = oyuncu(oa), oyuncu(ob)
     satirlar = MAC_KALECI_SATIRLARI if rol == "Kaleci" else MAC_SATIRLARI
