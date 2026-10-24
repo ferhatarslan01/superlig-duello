@@ -130,9 +130,8 @@ def paylas(metin, yol, dry):
 
 # ---------- metinler ----------
 def foto_notu(*oyuncular):
-    k = sorted({o["_foto"] for o in oyuncular if o.get("_foto")})
-    return "\n\nFotoğraf: " + ", ".join(k) if k else ""
-
+    """Tweet metnine fotograf notu eklenmez; kaynak kartin alt satirinda yazar."""
+    return ""
 
 
 def mac_metni(ev, rol, oa, ob):
@@ -248,8 +247,7 @@ def mod_liderler(dry, zorla=False):
     for tur, yol in zip(("gol", "asist", "kart"), yollar):
         if tur in gonderilen and not dry:
             continue
-        kaynaklar = sorted({fotograf.foto_al(o["ad"], o["takim"])[1] or "" for o in l[tur]} - {""})
-        metin = lider_metni(tur, l[tur]) + (f"\n\nFotoğraf: {', '.join(kaynaklar)}" if kaynaklar else "")
+        metin = lider_metni(tur, l[tur])   # fotograf notu metne eklenmez; kartin alt satirinda yazar
         if paylas(metin, yol, dry) and not dry:
             gonderilen.add(tur)
             durum["liderler"] = {"hafta": hafta, "gonderilen": sorted(gonderilen)}
