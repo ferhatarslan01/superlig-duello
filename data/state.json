@@ -2,5 +2,11 @@
  "maclar": [
   "401888268"
  ],
- "liderler_hafta": "2026-W43"
+ "liderler_hafta": "2026-W43",
+ "avrupa": {
+  "hafta": "2026-W43",
+  "gonderilen": [
+   "champions:gol"
+  ]
+ }
 }
