@@ -203,7 +203,7 @@ def kart_ciz(rol, a, b, benzerlik, yol):
 
     def oyuncu(o):
         return {"id": o["id"], "ad": o["ad"], "takim": o["takim"], "yas": o.get("yas"), "st": o["st"],
-                "satir2": f'{int(o["st"].get("appearances", 0))} maç · {int(o["st"]["minutes"])} dk'}
+                "satir2": None}
     ka, kb = oyuncu(a), oyuncu(b)
     kart_v2.ciz(yol, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", f"{SEZON}-{str(SEZON + 1)[2:]} sezonu", ka, kb,
                 _satir.sezon_satirlari(rol), "İkisinden hangisini seçerdin?", kotu=KOTU)

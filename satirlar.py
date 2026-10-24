@@ -1,4 +1,4 @@
-"""Mevkiye gore kart satirlari (7 satir; kaleci 7).
+"""Mevkiye gore kart satirlari (en fazla 8; basta oynanan mac ve dakika).
 
 Her satir: (alan, etiket). Hesaplanan alanlar kart_v2._deger icinde tanimli:
   shotAcc (isabetli sut/sut %), minPerGoal (gol basina dakika), gcPerMatch (mac basina yenen gol),
@@ -63,9 +63,25 @@ MAC = {
 }
 
 
+MAX_SATIR = 8
+# 8 satiri asinca bu sirayla dusurulur (en az onemliden baslayarak)
+DUSURME_SIRASI = ["offsides", "yellowCards", "foulsCommitted", "foulsSuffered", "redCards"]
+SEZON_ON = [("appearances", "OYNANAN MAÇ"), ("minutes", "OYNADIĞI SÜRE (DK)")]
+MAC_ON = [("minutes", "OYNADIĞI SÜRE (DK)")]
+
+
+def _birlestir(on, satirlar):
+    liste = on + [r for r in satirlar if r[0] not in {a for a, _ in on}]
+    for alan in DUSURME_SIRASI:
+        if len(liste) <= MAX_SATIR:
+            break
+        liste = [r for r in liste if r[0] != alan]
+    return liste
+
+
 def sezon_satirlari(rol):
-    return SEZON.get(rol, _ORTA_SAHA)
+    return _birlestir(SEZON_ON, SEZON.get(rol, _ORTA_SAHA))
 
 
 def mac_satirlari(rol):
-    return MAC.get(rol, _MAC_ORTA)
+    return _birlestir(MAC_ON, MAC.get(rol, _MAC_ORTA))

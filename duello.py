@@ -184,7 +184,7 @@ def kart_ciz(ev, rol, oa, ob, yol):
     def oyuncu(o):
         dk = int(o["st"].get("minutes", 0))
         return {"id": o.get("id"), "ad": o["ad"], "takim": o["_takim"], "yas": o.get("yas"), "st": o["st"],
-                "satir2": f"{dk} dk oynadı" if dk else None}
+                "satir2": None}
     a, b = oyuncu(oa), oyuncu(ob)
     import satirlar as _satir
     satirlar = _satir.mac_satirlari(rol)
