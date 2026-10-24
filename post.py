@@ -209,39 +209,49 @@ def mod_sezon(dry):
         sezon.paylasildi_isaretle(a, b)
 
 
-def liderler_metni(l):
-    from kart_v2 import takim_adi  # noqa: F401
+LIDER_BASLIK = {"gol": "⚽ Süper Lig gol krallığı", "asist": "🅰️ Süper Lig asist krallığı",
+                "kart": "🟨🟥 Süper Lig kart liderleri"}
 
-    def kisa(o):
-        return o["ad"].split()[-1]
 
-    def liste(tur, f):
-        return ", ".join(f"{kisa(o)} {f(o)}" for o in l[tur][:3])
-    gol = liste("gol", lambda o: int(o["st"]["totalGoals"]))
-    asist = liste("asist", lambda o: int(o["st"]["goalAssists"]))
-    kart = liste("kart", lambda o: f"{int(o['st'].get('yellowCards', 0))}🟨{int(o['st'].get('redCards', 0))}🟥")
-    return "\n\n".join([
-        "Süper Lig liderleri · 2026-27",
-        f"⚽ Gol krallığı: {gol}",
-        f"🅰️ Asist krallığı: {asist}",
-        f"🟨🟥 Kart liderleri: {kart}",
-        "#SüperLig #Futbol",
-    ])
+def x_uzunluk(m):
+    """X'in karakter sayimina yakin: emojiler 2 sayilir."""
+    return sum(2 if (ord(c) > 0xFFFF or c in "⚽🅰️🟨🟥") else 1 for c in m)
+
+
+def lider_metni(tur, liste):
+    """Tek turun gonderi metni: ilk 5 oyuncu (ad, takim, deger); 280 karakteri asarsa kisaltir."""
+    from kart_v2 import takim_adi
+
+    def deger(o):
+        st = o["st"]
+        if tur == "gol":
+            return str(int(st["totalGoals"]))
+        if tur == "asist":
+            return str(int(st["goalAssists"]))
+        return f"{int(st.get('yellowCards', 0))}🟨 {int(st.get('redCards', 0))}🟥"
+    satirlar = [f"{i}. {o['ad']} ({takim_adi(o['takim'])}) {deger(o)}" for i, o in enumerate(liste, 1)]
+    return "\n\n".join([LIDER_BASLIK[tur] + " · 2026-27", "\n".join(satirlar), "#SüperLig #Futbol"])
 
 
 def mod_liderler(dry, zorla=False):
     import kart_lider
     hafta = datetime.now(timezone.utc).strftime("%G-W%V")
     durum = durum_oku()
-    if not dry and not zorla and durum.get("liderler_hafta") == hafta:
+    kayit = durum.get("liderler") or {}
+    gonderilen = set(kayit.get("gonderilen", [])) if kayit.get("hafta") == hafta and not zorla else set()
+    if not dry and len(gonderilen) == 3:
         print(f"{hafta} haftasinin liderleri zaten paylasildi")
         return
     yollar, l = kart_lider.uret()
-    kaynaklar = sorted({fotograf.foto_al(o["ad"], o["takim"])[1] or "" for t in l.values() for o in t} - {""})
-    metin = liderler_metni(l) + (f"\n\nFotoğraf: {', '.join(kaynaklar)}" if kaynaklar else "")
-    if paylas(metin, yollar, dry) and not dry:
-        durum["liderler_hafta"] = hafta
-        durum_yaz(durum)
+    for tur, yol in zip(("gol", "asist", "kart"), yollar):
+        if tur in gonderilen and not dry:
+            continue
+        kaynaklar = sorted({fotograf.foto_al(o["ad"], o["takim"])[1] or "" for o in l[tur]} - {""})
+        metin = lider_metni(tur, l[tur]) + (f"\n\nFotoğraf: {', '.join(kaynaklar)}" if kaynaklar else "")
+        if paylas(metin, yol, dry) and not dry:
+            gonderilen.add(tur)
+            durum["liderler"] = {"hafta": hafta, "gonderilen": sorted(gonderilen)}
+            durum_yaz(durum)   # her gonderiden sonra kaydet: yarida kalirsa kalan(lar) tekrar denenir
 
 
 def main():
