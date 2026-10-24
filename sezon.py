@@ -15,6 +15,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+import apifootball
 import fotograf
 import satirlar as _satir
 from duello import API, CORE, HESAP, ROL, ROL_SIRA, buyuk, font, get, sigdir
@@ -167,9 +168,11 @@ def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
                     continue
                 if max_mesafe is not None and dist > max_mesafe:
                     continue
-                if en is None or dist < en[0]:
-                    en = (dist, r, a, b)
-    return en
+                # iki oyuncunun da puani olan ciftler (puan satiri gorunur) once, sonra benzerlik
+                anahtar = (0 if a["st"].get("puan") and b["st"].get("puan") else 1, dist)
+                if en is None or anahtar < en[4]:
+                    en = (dist, r, a, b, anahtar)
+    return en[:4] if en else None
 
 
 def deger(o, alan, tur):
@@ -276,6 +279,7 @@ def sezon_verisi(yenile=False):
     {"Oyuncu Adi": "Rol"} seklinde duzeltilir."""
     oyuncular = [o for o in _sezon_verisi_ham(yenile) if o["st"]["minutes"] > MIN_DAKIKA]
     oyuncular = orta_saha_sinifla(oyuncular)
+    apifootball.puan_ekle(oyuncular)
     if not DUZELTME.exists():
         return oyuncular
     gecerli = set(ROL.values())

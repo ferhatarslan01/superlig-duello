@@ -97,7 +97,7 @@ def _metin(v, alan):
         return "–"
     if alan in YUZDE_ALANLARI:
         return f"%{round(v)}"
-    if alan == "gcPerMatch":
+    if alan in ("gcPerMatch", "puan"):
         return f"{v:.1f}".replace(".", ",")
     return str(int(round(v)))
 
@@ -150,6 +150,8 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
 
     # istatistik satirlari
     y0 = 478
+    # her iki oyuncuda da verisi olmayan puan satirini gizle
+    satirlar = [r for r in satirlar if not (r[0] == "puan" and _deger(a, "puan") is None and _deger(b, "puan") is None)]
     n = len(satirlar)
     h = 90 if n < 7 else min(68, 470 // n)     # az satirda genis, cok satirda dar satir
     off = max(0, (h - 68) / 2)
@@ -173,6 +175,6 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
 
     ortala(H - 112, HESAP, font(54), BEYAZ)
     kaynaklar = sorted({o["_foto"] for o in (a, b) if o.get("_foto")})
-    alt = "Veri: ESPN" + ("  ·  Değer: Transfermarkt" if any(o.get("_deger") for o in (a, b)) else "") +         (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
+    alt = "Veri: ESPN" + ("  ·  Değer: Transfermarkt" if any(o.get("_deger") for o in (a, b)) else "") +         ("  ·  Puan: APIfootball" if any(_deger(o, "puan") for o in (a, b)) else "") +         (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
     ortala(H - 52, alt, font(24, False), SOLUK)
     img.save(yol)

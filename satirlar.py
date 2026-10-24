@@ -1,8 +1,9 @@
-"""Mevkiye gore kart satirlari (7 satir; kaleci 7).
+"""Mevkiye gore kart satirlari (en fazla 8 satir).
 
 Her satir: (alan, etiket). Hesaplanan alanlar kart_v2._deger icinde tanimli:
   shotAcc (isabetli sut/sut %), minPerGoal (gol basina dakika), gcPerMatch (mac basina yenen gol),
   tackleSuccess (top calma basarisi %), saveRate (kurtaris orani %).
+"puan": apifootball.com sezon ortalama puani (0-10). Her iki oyuncuda da yoksa satir gizlenir.
 """
 
 # daha DUSUK olan kazanir (kutu vurgusu icin)
@@ -11,26 +12,28 @@ DUSUK_IYI = {"minPerGoal", "gcPerMatch"}
 VURGUSUZ = {"foulsCommitted", "yellowCards", "redCards", "offsides", "goalsConceded",
             "appearances", "minutes", "starts", "subIns"}
 
+PUAN = ("puan", "ORTALAMA PUAN")
+
 # --- SEZON ---
-_UCLU = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
+_UCLU = [PUAN, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
          ("shotAcc", "ŞUT İSABETİ"), ("minPerGoal", "GOL BAŞINA DAKİKA"),
-         ("foulsSuffered", "KAZANILAN FAUL"), ("offsides", "OFSAYT")]
-_OFANSIF_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
+         ("foulsSuffered", "KAZANILAN FAUL")]
+_OFANSIF_OS = [PUAN, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
                ("shotAcc", "ŞUT İSABETİ"), ("passPct", "PAS İSABETİ"),
-               ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_ORTA_SAHA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
+               ("foulsSuffered", "KAZANILAN FAUL")]
+_ORTA_SAHA = [PUAN, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
               ("passPct", "PAS İSABETİ"), ("effectiveTackles", "TOP ÇALMA"),
-              ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_SAVUNMA_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+              ("foulsSuffered", "KAZANILAN FAUL")]
+_SAVUNMA_OS = [PUAN, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
                ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
-               ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-_STOPER = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+               ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL")]
+_STOPER = [PUAN, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
            ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
-           ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-_BEK = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+           ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL")]
+_BEK = [PUAN, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
         ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
-        ("passPct", "PAS İSABETİ"), ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_KALECI = [("appearances", "MAÇ"), ("saves", "KURTARIŞ"), ("cleanSheet", "GOL YEMEDEN BİTEN MAÇ"),
+        ("passPct", "PAS İSABETİ"), ("foulsSuffered", "KAZANILAN FAUL")]
+_KALECI = [PUAN, ("saves", "KURTARIŞ"), ("cleanSheet", "GOL YEMEDEN BİTEN MAÇ"),
            ("saveRate", "KURTARIŞ ORANI"), ("gcPerMatch", "MAÇ BAŞINA YENEN GOL"),
            ("penaltyKicksSaved", "PENALTI KURTARMA"), ("accuratePasses", "İSABETLİ PAS")]
 
@@ -42,17 +45,18 @@ SEZON = {
     "Stoper": _STOPER, "Bek": _BEK, "Kaleci": _KALECI,
 }
 
-# --- MAC SONU (tek macin istatistikleri) ---
-_MAC_UCLU = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
+# --- MAC SONU (tek macin istatistikleri; puan = sezon ortalamasi, mac bazli puan veri kaynaginda yok) ---
+SEZON_PUANI = ("puan", "SEZON PUANI")
+_MAC_UCLU = [SEZON_PUANI, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
              ("shotsOnTarget", "İSABETLİ ŞUT"), ("passPct", "PAS İSABETİ"),
-             ("foulsSuffered", "KAZANILAN FAUL"), ("offsides", "OFSAYT")]
-_MAC_ORTA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
+             ("foulsSuffered", "KAZANILAN FAUL")]
+_MAC_ORTA = [SEZON_PUANI, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
              ("passPct", "PAS İSABETİ"), ("effectiveTackles", "TOP ÇALMA"),
-             ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_MAC_SAVUNMA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
+             ("foulsSuffered", "KAZANILAN FAUL")]
+_MAC_SAVUNMA = [SEZON_PUANI, ("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
                 ("totalClearance", "UZAKLAŞTIRMA"), ("passPct", "PAS İSABETİ"),
-                ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-_MAC_KALECI = [("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"), ("saveRate", "KURTARIŞ ORANI"),
+                ("foulsCommitted", "YAPILAN FAUL")]
+_MAC_KALECI = [SEZON_PUANI, ("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"), ("saveRate", "KURTARIŞ ORANI"),
                ("accuratePasses", "İSABETLİ PAS"), ("passPct", "PAS İSABETİ")]
 
 MAC = {

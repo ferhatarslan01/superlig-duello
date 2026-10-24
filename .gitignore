@@ -7,3 +7,4 @@ logo/out/
 data/tm_indirilen/
 *.tmp.py
 *.tmp
+data/apifootball_onbellek.json
