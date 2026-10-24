@@ -245,7 +245,58 @@ def logo_7():
     return im
 
 
+def _oklar(d, ox, oy, olcek):
+    """logo_7 ikonu: (ox, oy) sol-ust, olcek 1.0 = 780x420 px."""
+    kal = 118
+    def pts_sol(k):
+        b = 150 + k * 92
+        return [(b, 190), (b + kal, 190), (b + kal + 130, 400), (b + kal, 610), (b, 610), (b + 130, 400)]
+    def pts_sag(k):
+        b = 930 - k * 92
+        return [(b, 190), (b - kal, 190), (b - kal - 130, 400), (b - kal, 610), (b, 610), (b - 130, 400)]
+    def donustur(pts):
+        return [((x - 150) * olcek + ox, (y - 190) * olcek + oy) for x, y in pts]
+    for renk, fn in ((KIRMIZI, pts_sol), (MAVI, pts_sag)):
+        for k in range(3):
+            c = renk if k == 2 else tuple(int(v * (0.45 + 0.275 * k)) for v in renk)
+            d.polygon([p(*q) for q in donustur(fn(k))], fill=c)
+    cx, cy = (540 - 150) * olcek + ox, (400 - 190) * olcek + oy
+    r = 46 * olcek
+    d.ellipse([p(cx - r, cy - r), p(cx + r, cy + r)], fill=SARI)
+
+
+def profil():
+    """X profil resmi: yuvarlak kirpmaya uygun, ikon ortada ve genis kenar payli."""
+    im = tuval()
+    d = ImageDraw.Draw(im)
+    olcek = 0.90
+    _oklar(d, 540 - 390 * olcek, 540 - 210 * olcek, olcek)
+    return im
+
+
+def baslik():
+    """X baslik gorseli 1500x500."""
+    W, H = 1500, 500
+    im = Image.new("RGB", (W * S, H * S), ARKA)
+    d = ImageDraw.Draw(im)
+    olcek = 0.62
+    _oklar(d, 330, 500 / 2 - 210 * olcek, olcek)
+    x = 860
+    d.text((x * S, 150 * S), "STAT", font=f(120), fill=BEYAZ)
+    wa = d.textlength("STAT", font=f(120))
+    d.text((x * S + wa + 6 * S, 150 * S), "DUEL", font=f(120), fill=MAVI)
+    d.text((x * S, 282 * S), "SÜPER LİG OYUNCU KARŞILAŞTIRMALARI", font=f(31), fill=GRI)
+    d.rounded_rectangle([p(x, 332), p(x + 80, 337)], 3 * S, fill=SARI)
+    d.text((x * S, 352 * S), "Maç sonu düellosu  ·  Sezon karşılaştırması", font=f(27), fill=(110, 118, 140))
+    return im.resize((W, H), Image.LANCZOS)
+
+
 if __name__ == "__main__":
     for i, fn in enumerate((logo_1, logo_2, logo_3, logo_4, logo_5, logo_6, logo_7), 1):
         kaydet(fn(), f"logo_{i}.png")
         print(OUT / f"logo_{i}.png")
+    OUT.mkdir(exist_ok=True)
+    kaydet(profil(), "profil_statduel.png")
+    baslik().save(OUT / "baslik_statduel.png")
+    print(OUT / "profil_statduel.png")
+    print(OUT / "baslik_statduel.png")
