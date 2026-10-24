@@ -3,7 +3,16 @@ name: Sezon düellosu
 on:
   schedule:
     - cron: '0 17 * * 4' # her perşembe 20:00 TRT
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      oyuncu1:
+        description: 'İsteğe bağlı: birinci oyuncu (ad parçası, örn. Osimhen)'
+        required: false
+        default: ''
+      oyuncu2:
+        description: 'İsteğe bağlı: ikinci oyuncu (ad parçası, örn. Muriqi)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -25,8 +34,10 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - run: python post.py sezon
+      - run: python post.py sezon "$OYUNCU1" "$OYUNCU2"
         env:
+          OYUNCU1: ${{ inputs.oyuncu1 }}
+          OYUNCU2: ${{ inputs.oyuncu2 }}
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
           GITHUB_REPOSITORY: ${{ github.repository }}

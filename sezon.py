@@ -307,6 +307,24 @@ def sezon_kart(rol=None, yenile=False):
     return yol, rol_, a, b, benz
 
 
+def cift_kart(ad1, ad2, yenile=False):
+    """Elle secilen iki oyuncu (ad parcasi) icin kart uretir. (yol, rol, a, b, benzerlik) doner."""
+    oyuncular = sezon_verisi(yenile)
+    a, b = ada_gore(oyuncular, ad1), ada_gore(oyuncular, ad2)
+    grup = [o for o in oyuncular if o["rol"] == a["rol"]]
+    std = {}
+    for f in ozellikler(a["rol"]):
+        v = [p90(o, f) for o in grup]
+        m = sum(v) / len(v)
+        std[f] = (sum((x - m) ** 2 for x in v) / len(v)) ** 0.5 or 1.0
+    dist = sum(((p90(a, f) - p90(b, f)) / std[f]) ** 2 for f in ozellikler(a["rol"])) ** 0.5
+    benz = max(0, min(100, round(100 * (1 - dist / 6))))
+    OUT.mkdir(exist_ok=True)
+    yol = OUT / f"sezon_{a['id']}_{b['id']}.png"
+    kart_ciz(a["rol"], a, b, benz, yol)
+    return yol, a["rol"], a, b, benz
+
+
 def paylasildi_isaretle(a, b):
     paylasilan = VERI / "paylasilan_sezon.json"
     gecmis = json.loads(paylasilan.read_text()) if paylasilan.exists() else []
@@ -323,20 +341,7 @@ def main():
     ad = [x for x in args if not x.startswith("--") and x != rol]
 
     if len(ad) == 2:
-        oyuncular = sezon_verisi(yenile)
-        a, b = ada_gore(oyuncular, ad[0]), ada_gore(oyuncular, ad[1])
-        grup = [o for o in oyuncular if o["rol"] == a["rol"]]
-        std = {}
-        for f in ozellikler(a["rol"]):
-            v = [p90(o, f) for o in grup]
-            m = sum(v) / len(v)
-            std[f] = (sum((x - m) ** 2 for x in v) / len(v)) ** 0.5 or 1.0
-        dist = sum(((p90(a, f) - p90(b, f)) / std[f]) ** 2 for f in ozellikler(a["rol"])) ** 0.5
-        benz = max(0, min(100, round(100 * (1 - dist / 6))))
-        OUT.mkdir(exist_ok=True)
-        yol = OUT / f"sezon_{a['id']}_{b['id']}.png"
-        kart_ciz(a["rol"], a, b, benz, yol)
-        sonuc = (yol, a["rol"], a, b, benz)
+        sonuc = cift_kart(ad[0], ad[1], yenile)
     else:
         sonuc = sezon_kart(rol, yenile)
         if not sonuc:

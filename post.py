@@ -3,6 +3,7 @@
 Kullanim:
   python post.py mac              # yeni biten maclar icin duello karti
   python post.py sezon            # haftalik sezon karsilastirmasi
+  python post.py sezon Osimhen Muriqi   # belirli iki oyuncu
   python post.py liderler         # sali: gol krali, asist krali, kartlar (3 gorsel)
   ... --dry-run                   # kart + metin uretir, hicbir sey gondermez / kaydetmez
 
@@ -199,8 +200,9 @@ def mod_mac(dry):
             durum_yaz(durum)
 
 
-def mod_sezon(dry):
-    sonuc = sezon.sezon_kart()
+def mod_sezon(dry, adlar=()):
+    adlar = [x for x in adlar if x and x.strip()]
+    sonuc = sezon.cift_kart(adlar[0], adlar[1]) if len(adlar) == 2 else sezon.sezon_kart()
     if not sonuc:
         print("Uygun oyuncu cifti yok")
         return
@@ -261,7 +263,7 @@ def main():
     if mod == "mac":
         mod_mac(dry)
     elif mod == "sezon":
-        mod_sezon(dry)
+        mod_sezon(dry, [a for a in args[1:] if not a.startswith("--")] if args and args[0] == "sezon" else ())
     elif mod == "liderler":
         mod_liderler(dry, zorla="--zorla" in args)
     else:
