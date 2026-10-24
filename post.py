@@ -255,9 +255,17 @@ def mod_liderler(dry, zorla=False):
             durum_yaz(durum)   # her gonderiden sonra kaydet: yarida kalirsa kalan(lar) tekrar denenir
 
 
-ONCE_MIN_DK = int(os.environ.get("ONCE_MIN_DK", "60"))     # maca en az bu kadar dakika varken
+ONCE_MIN_DK = int(os.environ.get("ONCE_MIN_DK", "20"))     # maca en az bu kadar dakika varken
 ONCE_MAX_DK = int(os.environ.get("ONCE_MAX_DK", "240"))    # ve en fazla bu kadar dakika kala paylas
-MAX_ONCE_PER_RUN = 2
+MAX_MAC_PER_RUN = 2        # bir calismada en fazla bu kadar mac icin (her mac icin tek kart)
+BUYUK4 = {"galatasaray", "fenerbahce", "besiktas", "trabzonspor"}
+KART_BUYUK = 7             # buyuk 4'ten biri oynuyorsa mac basina kart sayisi
+KART_DIGER = 2             # diger maclar
+
+
+def hedef_kart(ev_s, dep):
+    import fotograf
+    return KART_BUYUK if {fotograf.norm(ev_s), fotograf.norm(dep)} & BUYUK4 else KART_DIGER
 
 
 def yaklasan_maclar():
@@ -271,49 +279,70 @@ def yaklasan_maclar():
                 continue
             bas = datetime.fromisoformat(e["date"].replace("Z", "+00:00"))
             kalan = (bas - simdi).total_seconds() / 60
-            if ONCE_MIN_DK <= kalan <= ONCE_MAX_DK and (e, bas) not in bulunan:
+            if ONCE_MIN_DK <= kalan <= ONCE_MAX_DK and e["id"] not in {x["id"] for x, _ in bulunan}:
                 bulunan.append((e, bas))
-    return bulunan
+    return sorted(bulunan, key=lambda x: x[1])
 
 
-def oncesi_metni(ev_s, dep, bas, a, b):
+def oncesi_metni(ev_s, dep, bas, a, b, k, n):
     from kart_v2 import takim_adi
     saat = (bas + timedelta(hours=3)).strftime("%H:%M")   # TRT = UTC+3
     return "\n\n".join([
-        f"Maç öncesi · {takim_adi(ev_s)} - {takim_adi(dep)} ({saat})",
+        f"Maç öncesi {k}/{n} · {takim_adi(ev_s)} - {takim_adi(dep)} ({saat})",
         f"{a['ad']} ({takim_adi(a['takim'])}) vs {b['ad']} ({takim_adi(b['takim'])})",
         "Sezon karşılaştırması 👇",
         "#SüperLig #Futbol",
     ])
 
 
+def _oncesi_durum(durum):
+    """Eski bicim (olay kimligi listesi) yeni bicime (kimlik -> ilerleme) cevrilir."""
+    o = durum.get("oncesi", {})
+    if isinstance(o, list):
+        o = {eid: {"yapilan": 99, "bitti": True} for eid in o}
+    durum["oncesi"] = o
+    return o
+
+
 def mod_oncesi(dry):
     from kart_v2 import takim_adi
     durum = durum_oku()
-    liste = [(e, bas) for e, bas in yaklasan_maclar() if e["id"] not in durum.get("oncesi", [])][:MAX_ONCE_PER_RUN]
+    ilerleme = _oncesi_durum(durum)
+    liste = [(e, bas) for e, bas in yaklasan_maclar() if not ilerleme.get(e["id"], {}).get("bitti")][:MAX_MAC_PER_RUN]
     if not liste:
-        print("Maca yaklasan yeni mac yok")
+        print("Maca yaklasan, kart sirasi bekleyen mac yok")
         return
     for e, bas in liste:
         c = e["competitions"][0]["competitors"]
         ev_s = next(t for t in c if t["homeAway"] == "home")["team"]["displayName"]
         dep = next(t for t in c if t["homeAway"] == "away")["team"]["displayName"]
+        n = hedef_kart(ev_s, dep)
+        p = ilerleme.setdefault(e["id"], {"yapilan": 0, "oyuncular": [], "roller": {}, "bitti": False})
+        if p["yapilan"] >= n:
+            p["bitti"] = True
+            continue
         try:
-            sonuc = sezon.mac_oncesi_cifti(ev_s, dep, f"{takim_adi(ev_s)} - {takim_adi(dep)}")
+            sonuc = sezon.mac_oncesi_cifti(ev_s, dep, f"{takim_adi(ev_s)} - {takim_adi(dep)}",
+                                           kullanilan=p["oyuncular"], rol_sayac=p["roller"])
         except Exception as ex:
             print(f"{e['id']}: kart uretilemedi ({ex}); sonraki calismada tekrar denenecek", file=sys.stderr)
             continue
         if sonuc is None:
-            print(f"{e['id']}: eslesen oyuncu cifti yok, atlandi")
+            print(f"{e['id']}: eslesen oyuncu cifti kalmadi ({p['yapilan']}/{n} kart yapildi)")
+            p["bitti"] = True
             if not dry:
-                durum.setdefault("oncesi", []).append(e["id"])
                 durum_yaz(durum)
             continue
-        yol, rol, a, b, benz = sonuc
-        if paylas(oncesi_metni(ev_s, dep, bas, a, b), yol, dry) and not dry:
+        yol, rol, a, b, _ = sonuc
+        k = p["yapilan"] + 1
+        if paylas(oncesi_metni(ev_s, dep, bas, a, b, k, n), yol, dry) and not dry:
             sezon.paylasildi_isaretle(a, b)
-            durum.setdefault("oncesi", []).append(e["id"])
-            durum["oncesi"] = durum["oncesi"][-200:]
+            p["yapilan"] = k
+            p["oyuncular"] += [str(a["id"]), str(b["id"])]
+            p["roller"][rol] = p["roller"].get(rol, 0) + 1
+            p["bitti"] = k >= n
+            for eski in list(ilerleme)[:-100]:   # sozluk sismesin
+                ilerleme.pop(eski, None)
             durum_yaz(durum)
 
 

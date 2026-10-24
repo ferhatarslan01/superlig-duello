@@ -326,12 +326,16 @@ def onem(o):
     return temel + g("shotsOnTarget", 0) * 0.7 + g("totalShots", 0) * 0.2
 
 
-def mac_oncesi_cifti(takim_a, takim_b, baslik=None):
-    """Mac oncesi: iki takimin AYNI MEVKIDEKI en dikkat cekici oyuncularini karsilastirir.
-    Her mevkide iki takimin en yuksek 'onem' puanli oyuncusu eslesir; hucum mevkileri one gecer.
-    (yol, rol, a, b, benz) doner."""
+def mac_oncesi_cifti(takim_a, takim_b, baslik=None, kullanilan=(), rol_sayac=None):
+    """Mac oncesi: iki takimin AYNI MEVKIDEKI oyuncularindan siradaki en dikkat cekici cifti secer.
+
+    kullanilan: bu mac icin daha once kullanilan oyuncu kimlikleri (tekrar secilmez).
+    rol_sayac: {rol: bu mac icin kac kart yapildi}; ayni mevki tekrarlandikca puan 0.6 ile carpilir,
+    boylece kartlar farkli mevkilerden dagilir. (yol, rol, a, b, benz) doner; cift kalmadiysa None."""
+    rol_sayac = rol_sayac or {}
+    kullanilan = {str(x) for x in kullanilan}
     na, nb = fotograf.norm(takim_a), fotograf.norm(takim_b)
-    oy = [o for o in sezon_verisi() if fotograf.norm(o["takim"]) in (na, nb)]
+    oy = [o for o in sezon_verisi() if fotograf.norm(o["takim"]) in (na, nb) and str(o["id"]) not in kullanilan]
     paylasilan = VERI / "paylasilan_sezon.json"
     gecmis = json.loads(paylasilan.read_text()) if paylasilan.exists() else []
     yasak = {frozenset(x) for x in gecmis}
@@ -339,13 +343,13 @@ def mac_oncesi_cifti(takim_a, takim_b, baslik=None):
     for r in ROL_AGIRLIK:
         ga = sorted([o for o in oy if o["rol"] == r and fotograf.norm(o["takim"]) == na], key=lambda o: -onem(o))
         gb = sorted([o for o in oy if o["rol"] == r and fotograf.norm(o["takim"]) == nb], key=lambda o: -onem(o))
-        for a in ga[:3]:
-            for b in gb[:3]:
+        for a in ga[:4]:
+            for b in gb[:4]:
                 if frozenset((a["id"], b["id"])) in yasak:
                     continue
                 if abs(a["st"]["minutes"] - b["st"]["minutes"]) >= ONCE_MAX_SURE_FARKI:
                     continue
-                puan = (onem(a) + onem(b)) * ROL_AGIRLIK[r]
+                puan = (onem(a) + onem(b)) * ROL_AGIRLIK[r] * (0.6 ** rol_sayac.get(r, 0))
                 if en is None or puan > en[0]:
                     en = (puan, r, a, b)
     if not en:
