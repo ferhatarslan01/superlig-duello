@@ -16,6 +16,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 import fotograf
+import satirlar as _satir
 from duello import API, CORE, HESAP, ROL, ROL_SIRA, buyuk, font, get, sigdir
 
 KLASOR = Path(__file__).parent
@@ -126,8 +127,17 @@ MAX_SURE_FARKI = 350  # iki oyuncunun oynadigi sure farki bundan az olmali (daki
 MAX_MESAFE = 2.4  # ~%60 benzerlik; bundan uzak ciftler otomatik secilmez (kucuk havuzda zayif eslesmeyi onler)
 
 
+SAVUNMA_OZELLIK = ["effectiveTackles", "totalClearance", "blockedShots", "totalPasses",
+                   "foulsCommitted", "foulsSuffered"]
+HUCUM_ROLLERI = {"Forvet", "Kanat", "Ofansif orta saha", "Yan orta saha"}
+
+
 def ozellikler(rol):
-    return KALECI_OZELLIK if rol == "Kaleci" else OZELLIK
+    if rol == "Kaleci":
+        return KALECI_OZELLIK
+    if rol in ("Stoper", "Bek", "Defansif orta saha"):
+        return SAVUNMA_OZELLIK
+    return OZELLIK
 
 
 def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
@@ -151,7 +161,7 @@ def en_benzer_cift(oyuncular, rol=None, yasak=(), max_mesafe=MAX_MESAFE):
                 # her ikisi de en az bir "olay" uretmis olsun (cok sessiz ciftler bos kart olur)
                 canli = a["st"].get("totalGoals", 0) + a["st"].get("goalAssists", 0) + \
                     b["st"].get("totalGoals", 0) + b["st"].get("goalAssists", 0)
-                if canli < 2 and r != "Kaleci":
+                if canli < 2 and r in HUCUM_ROLLERI:
                     continue
                 if abs(a["st"]["minutes"] - b["st"]["minutes"]) >= MAX_SURE_FARKI:
                     continue
@@ -196,7 +206,7 @@ def kart_ciz(rol, a, b, benzerlik, yol):
                 "satir2": f'{int(o["st"].get("appearances", 0))} maç · {int(o["st"]["minutes"])} dk'}
     ka, kb = oyuncu(a), oyuncu(b)
     kart_v2.ciz(yol, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", f"{SEZON}-{str(SEZON + 1)[2:]} sezonu", ka, kb,
-                SEZON_KALECI_SATIRLARI if rol == "Kaleci" else SEZON_SATIRLARI, "İkisinden hangisini seçerdin?", kotu=KOTU)
+                _satir.sezon_satirlari(rol), "İkisinden hangisini seçerdin?", kotu=KOTU)
     a["_foto"], b["_foto"] = ka["_foto"], kb["_foto"]
 
 

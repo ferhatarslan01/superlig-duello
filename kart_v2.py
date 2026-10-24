@@ -9,6 +9,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 import fotograf
+import satirlar
 from duello import HESAP, buyuk, font, sigdir
 
 W = H = 1080
@@ -66,23 +67,54 @@ def takim_adi(ad):
     return TAKIM_ADLARI.get(fotograf.norm(ad).replace("  ", " "), ad)
 
 
-YUZDE_ALANLARI = {"passPct", "saveRate"}
+YUZDE_ALANLARI = {"passPct", "saveRate", "shotAcc", "tackleSuccess"}
+
+
+def _oran(pay, payda):
+    return pay / payda * 100 if payda else None
 
 
 def _deger(o, alan):
     st = o["st"]
-    if alan == "saveRate":   # kurtaris orani = kurtaris / (kurtaris + yenen gol); veri yoksa None
-        n = st.get("saves", 0) + st.get("goalsConceded", 0)
-        return st.get("saves", 0) / n * 100 if n else None
+    g = st.get
+    if alan == "saveRate":      # kurtaris / (kurtaris + yenen gol)
+        return _oran(g("saves", 0), g("saves", 0) + g("goalsConceded", 0))
+    if alan == "shotAcc":       # isabetli sut / sut
+        return _oran(g("shotsOnTarget", 0), g("totalShots", 0))
+    if alan == "tackleSuccess":  # basarili top calma / top calma denemesi
+        return _oran(g("effectiveTackles", 0), g("totalTackles", 0))
+    if alan == "minPerGoal":    # gol basina dakika (gol yoksa None)
+        return g("minutes", 0) / g("totalGoals", 0) if g("totalGoals", 0) else None
+    if alan == "gcPerMatch":    # mac basina yenen gol
+        return g("goalsConceded", 0) / g("appearances", 0) if g("appearances", 0) else None
     if alan == "passPct":
-        return st.get("passPct", 0) * 100
-    return st.get(alan, 0)
+        return g("passPct", 0) * 100
+    return g(alan, 0)
 
 
 def _metin(v, alan):
     if v is None:
         return "–"
-    return f"%{round(v)}" if alan in YUZDE_ALANLARI else str(int(v))
+    if alan in YUZDE_ALANLARI:
+        return f"%{round(v)}"
+    if alan == "gcPerMatch":
+        return f"{v:.1f}".replace(".", ",")
+    return str(int(round(v)))
+
+
+def _kazanan(alan, va, vb, kotu=()):
+    """(a_kazandi, b_kazandi). Vurgusuz alanlarda kimse; dusuk-iyi alanlarda dusuk olan; None = veri yok."""
+    if alan in kotu or alan in satirlar.VURGUSUZ:
+        return False, False
+    if alan in satirlar.DUSUK_IYI:
+        if va is None and vb is None:
+            return False, False
+        x = float("inf") if va is None else round(va, 2)
+        y = float("inf") if vb is None else round(vb, 2)
+        return x < y, y < x
+    if va is None or vb is None:
+        return False, False
+    return round(va, 2) > round(vb, 2), round(vb, 2) > round(va, 2)
 
 
 def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
@@ -125,9 +157,7 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
     for alan, etiket in satirlar:
         va, vb = _deger(a, alan), _deger(b, alan)
         ta, tb = _metin(va, alan), _metin(vb, alan)
-        iyi = alan not in kotu and va is not None and vb is not None
-        kazanan_a = iyi and round(va, 2) > round(vb, 2)
-        kazanan_b = iyi and round(vb, 2) > round(va, 2)
+        kazanan_a, kazanan_b = _kazanan(alan, va, vb, kotu)
         for t, cx, renk, kazandi in ((ta, 200, KIRMIZI, kazanan_a), (tb, W - 200, MAVI, kazanan_b)):
             w = d.textlength(t, font=fn)
             if kazandi:

@@ -186,7 +186,8 @@ def kart_ciz(ev, rol, oa, ob, yol):
         return {"id": o.get("id"), "ad": o["ad"], "takim": o["_takim"], "yas": o.get("yas"), "st": o["st"],
                 "satir2": f"{dk} dk oynadı" if dk else None}
     a, b = oyuncu(oa), oyuncu(ob)
-    satirlar = MAC_KALECI_SATIRLARI if rol == "Kaleci" else MAC_SATIRLARI
+    import satirlar as _satir
+    satirlar = _satir.mac_satirlari(rol)
     kart_v2.ciz(yol, "SÜPER LİG  ·  MAÇ SONU DÜELLOSU", skor, a, b, satirlar,
                 "Sence bu düelloyu kim kazandı?", kotu=KOTU)
     oa["_foto"], ob["_foto"] = a["_foto"], b["_foto"]
