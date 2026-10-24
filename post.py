@@ -2,7 +2,8 @@
 
 Kullanim:
   python post.py mac              # yeni biten maclar icin duello karti
-  python post.py sezon            # haftalik sezon duellosu
+  python post.py sezon            # haftalik sezon karsilastirmasi
+  python post.py liderler         # sali: gol krali, asist krali, kartlar (3 gorsel)
   ... --dry-run                   # kart + metin uretir, hicbir sey gondermez / kaydetmez
 
 Ortam degiskenleri (GitHub Actions secrets): BUFFER_API_KEY, BUFFER_CHANNEL_ID
@@ -19,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import duello
+import fotograf
 import sezon
 
 KLASOR = Path(__file__).parent
@@ -86,7 +88,7 @@ def medya_yukle(yol: Path) -> str:
 
 
 # ---------- Buffer ----------
-def buffer_gonder(metin: str, gorsel_url: str):
+def buffer_gonder(metin: str, gorsel_urller):
     anahtar, kanal = os.environ["BUFFER_API_KEY"], os.environ["BUFFER_CHANNEL_ID"]
     sorgu = """
       mutation CreatePost($text: String!, $channelId: ChannelId!, $assets: [AssetInput!]) {
@@ -97,7 +99,7 @@ def buffer_gonder(metin: str, gorsel_url: str):
         }
       }"""
     govde = json.dumps({"query": sorgu, "variables": {
-        "text": metin, "channelId": kanal, "assets": [{"image": {"url": gorsel_url}}]}}).encode()
+        "text": metin, "channelId": kanal, "assets": [{"image": {"url": u}} for u in gorsel_urller]}}).encode()
     istek = urllib.request.Request(BUFFER_URL, data=govde, headers={
         "Content-Type": "application/json", "Authorization": f"Bearer {anahtar}"})
     with urllib.request.urlopen(istek, timeout=60) as r:
@@ -113,13 +115,14 @@ def buffer_gonder(metin: str, gorsel_url: str):
 def paylas(metin, yol, dry):
     print("-" * 50)
     print(metin)
-    print(f"[{yol}]")
+    yollar = list(yol) if isinstance(yol, (list, tuple)) else [yol]
+    print(f"[{', '.join(str(y) for y in yollar)}]")
     if dry:
         print("(dry-run: gonderilmedi)")
         return True
     if not (os.environ.get("BUFFER_API_KEY") and os.environ.get("BUFFER_CHANNEL_ID")):
         raise SystemExit("HATA: BUFFER_API_KEY / BUFFER_CHANNEL_ID yok (depo secret'larini kontrol et); gonderilmedi")
-    pid = buffer_gonder(metin, medya_yukle(yol))
+    pid = buffer_gonder(metin, [medya_yukle(y) for y in yollar])
     print(f"Buffer gonderi id: {pid}")
     return True
 
@@ -206,6 +209,41 @@ def mod_sezon(dry):
         sezon.paylasildi_isaretle(a, b)
 
 
+def liderler_metni(l):
+    from kart_v2 import takim_adi  # noqa: F401
+
+    def kisa(o):
+        return o["ad"].split()[-1]
+
+    def liste(tur, f):
+        return ", ".join(f"{kisa(o)} {f(o)}" for o in l[tur][:3])
+    gol = liste("gol", lambda o: int(o["st"]["totalGoals"]))
+    asist = liste("asist", lambda o: int(o["st"]["goalAssists"]))
+    kart = liste("kart", lambda o: f"{int(o['st'].get('yellowCards', 0))}🟨{int(o['st'].get('redCards', 0))}🟥")
+    return "\n\n".join([
+        "Süper Lig liderleri · 2026-27",
+        f"⚽ Gol krallığı: {gol}",
+        f"🅰️ Asist krallığı: {asist}",
+        f"🟨🟥 Kart liderleri: {kart}",
+        "#SüperLig #Futbol",
+    ])
+
+
+def mod_liderler(dry, zorla=False):
+    import kart_lider
+    hafta = datetime.now(timezone.utc).strftime("%G-W%V")
+    durum = durum_oku()
+    if not dry and not zorla and durum.get("liderler_hafta") == hafta:
+        print(f"{hafta} haftasinin liderleri zaten paylasildi")
+        return
+    yollar, l = kart_lider.uret()
+    kaynaklar = sorted({fotograf.foto_al(o["ad"], o["takim"])[1] or "" for t in l.values() for o in t} - {""})
+    metin = liderler_metni(l) + (f"\n\nFotoğraf: {', '.join(kaynaklar)}" if kaynaklar else "")
+    if paylas(metin, yollar, dry) and not dry:
+        durum["liderler_hafta"] = hafta
+        durum_yaz(durum)
+
+
 def main():
     args = sys.argv[1:]
     dry = "--dry-run" in args
@@ -214,6 +252,8 @@ def main():
         mod_mac(dry)
     elif mod == "sezon":
         mod_sezon(dry)
+    elif mod == "liderler":
+        mod_liderler(dry, zorla="--zorla" in args)
     else:
         raise SystemExit(__doc__)
 

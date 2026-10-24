@@ -6,6 +6,7 @@ Her şey GitHub Actions üzerinde çalışır.
 | Ne | Ne zaman | Komut |
 |---|---|---|
 | **Maç sonu düellosu**: aynı rolde oynayan karşı oyuncular (gol, asist, şut, pas isabeti, top çalma...) | Maç saatlerinde 30 dakikada bir yeni biten maçı kontrol eder | `python post.py mac` |
+| **Haftalık liderler**: gol krallığı, asist krallığı, kartlar (3 görsel) | Her salı 20:00 TRT | `python post.py liderler` |
 | **Sezon düellosu**: 90 dk başına istatistiği en benzer iki oyuncu | Her perşembe 20:00 TRT | `python post.py sezon` |
 
 `--dry-run` ekleyerek kart ve metin üretilir, hiçbir şey gönderilmez.
