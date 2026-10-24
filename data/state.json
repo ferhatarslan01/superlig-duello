@@ -8,5 +8,19 @@
   "gonderilen": [
    "champions:gol"
   ]
- }
+ },
+ "oncesi": {
+  "401888270": {
+   "yapilan": 1,
+   "oyuncular": [
+    "281531",
+    "180758"
+   ],
+   "roller": {
+    "Forvet": 1
+   },
+   "bitti": false
+  }
+ },
+ "son_diger": "2026-10-24T10:43:43.447445+00:00"
 }
