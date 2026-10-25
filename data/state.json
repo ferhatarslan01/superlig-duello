@@ -45,7 +45,18 @@
     "Defansif orta saha": 1
    },
    "bitti": false
+  },
+  "401888376": {
+   "yapilan": 1,
+   "oyuncular": [
+    "297074",
+    "82009"
+   ],
+   "roller": {
+    "Forvet": 1
+   },
+   "bitti": false
   }
  },
- "son_diger": "2026-10-25T11:08:56.922796+00:00"
+ "son_diger": "2026-10-25T15:01:20.991730+00:00"
 }
