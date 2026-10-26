@@ -454,6 +454,64 @@ def mod_avrupa(dry, zorla=False):
         durum_yaz(durum)
 
 
+def telafi_metni(ev_s, dep, a, b, k, n, etiket):
+    from kart_v2 import takim_adi
+    return "\n\n".join([
+        f"{etiket} {k}/{n} · {takim_adi(ev_s)} - {takim_adi(dep)}",
+        f"{a['ad']} ({takim_adi(a['takim'])}) vs {b['ad']} ({takim_adi(b['takim'])})",
+        "Sezon karşılaştırması 👇",
+        "#SüperLig #Futbol",
+    ])
+
+
+def mod_telafi(dry):
+    """Maca yetisilemeyen 'maç öncesi' kartlarini telafi eder. data/state.json icinde
+    "telafi": {"<olay_id>": {"aralik_dk": 10, "etiket": "Derbi karşılaştırması"}} varsa, o macin kalan
+    kartlari (hedef sayiya kadar) aralikla, 'Maç öncesi' demeden gonderilir. Calismada tek kart."""
+    from kart_v2 import takim_adi
+    durum = durum_oku()
+    telafi = durum.get("telafi") or {}
+    if not telafi:
+        return
+    ilerleme = _oncesi_durum(durum)
+    simdi = datetime.now(timezone.utc)
+    for eid, cfg in list(telafi.items()):
+        c = duello.get(f"{duello.API}/summary?event={eid}")["header"]["competitions"][0]["competitors"]
+        ev_s = next(t for t in c if t["homeAway"] == "home")["team"]["displayName"]
+        dep = next(t for t in c if t["homeAway"] == "away")["team"]["displayName"]
+        n = hedef_kart(ev_s, dep)
+        p = ilerleme.setdefault(eid, {"yapilan": 0, "oyuncular": [], "roller": {}, "bitti": False})
+        if p["yapilan"] >= n:
+            telafi.pop(eid)
+            p["bitti"] = True
+            durum_yaz(durum)
+            continue
+        aralik = cfg.get("aralik_dk", 10)
+        if p.get("son") and (simdi - datetime.fromisoformat(p["son"])).total_seconds() / 60 < aralik:
+            continue
+        sonuc = sezon.mac_oncesi_cifti(ev_s, dep, f"{takim_adi(ev_s)} - {takim_adi(dep)}",
+                                       kullanilan=p["oyuncular"], rol_sayac=p["roller"])
+        if sonuc is None:
+            print(f"{eid}: eslesen oyuncu cifti kalmadi ({p['yapilan']}/{n})")
+            telafi.pop(eid)
+            p["bitti"] = True
+            durum_yaz(durum)
+            continue
+        yol, rol, a, b, _ = sonuc
+        k = p["yapilan"] + 1
+        if paylas(telafi_metni(ev_s, dep, a, b, k, n, cfg.get("etiket", "Karşılaştırma")), yol, dry) and not dry:
+            sezon.paylasildi_isaretle(a, b)
+            p["yapilan"] = k
+            p["oyuncular"] += [str(a["id"]), str(b["id"])]
+            p["roller"][rol] = p["roller"].get(rol, 0) + 1
+            p["son"] = simdi.isoformat()
+            p["bitti"] = k >= n
+            if k >= n:
+                telafi.pop(eid)
+            durum_yaz(durum)
+        return   # calisma basina tek kart
+
+
 def durumu_kaydet():
     """data/ degisikliklerini commit'le ve it (Actions'ta calisirken)."""
     if not os.environ.get("GITHUB_REPOSITORY") or "--dry-run" in sys.argv:
@@ -481,7 +539,7 @@ def mod_dongu(dakika, aralik_dk=5, dry=False):
         simdi = datetime.now(timezone.utc)
         trt = simdi + timedelta(hours=3)
         print(f"--- {trt:%d.%m %H:%M} TRT ---", flush=True)
-        for ad, fn in (("mac", lambda: mod_mac(dry)), ("oncesi", lambda: mod_oncesi(dry))):
+        for ad, fn in (("mac", lambda: mod_mac(dry)), ("oncesi", lambda: mod_oncesi(dry)), ("telafi", lambda: mod_telafi(dry))):
             try:
                 fn()
             except BaseException as e:   # SystemExit dahil: bir mod dusse digerleri calissin

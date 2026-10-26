@@ -84,5 +84,11 @@
    "bitti": false
   }
  },
- "son_diger": "2026-10-25T15:01:20.991730+00:00"
+ "son_diger": "2026-10-25T15:01:20.991730+00:00",
+ "telafi": {
+  "401888265": {
+   "aralik_dk": 10,
+   "etiket": "Derbi karşılaştırması"
+  }
+ }
 }
