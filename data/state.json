@@ -84,7 +84,7 @@
    "bitti": false
   },
   "401888265": {
-   "yapilan": 6,
+   "yapilan": 7,
    "oyuncular": [
     "228296",
     "139437",
@@ -97,23 +97,21 @@
     "197105",
     "175195",
     "266575",
-    "322813"
+    "322813",
+    "219444",
+    "320982"
    ],
    "roller": {
     "Forvet": 2,
     "Kanat": 2,
     "Ofansif orta saha": 1,
-    "Stoper": 1
+    "Stoper": 1,
+    "Bek": 1
    },
-   "bitti": false,
-   "son": "2026-10-26T19:52:47.668206+00:00"
+   "bitti": true,
+   "son": "2026-10-26T19:54:54.792610+00:00"
   }
  },
  "son_diger": "2026-10-25T15:01:20.991730+00:00",
- "telafi": {
-  "401888265": {
-   "aralik_dk": 2,
-   "etiket": "Derbi karşılaştırması"
-  }
- }
+ "telafi": {}
 }
