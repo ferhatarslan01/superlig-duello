@@ -569,7 +569,9 @@ def mod_dongu(dakika, aralik_dk=5, dry=False):
         kalan = bitis - time.time()
         if kalan <= 0:
             break
-        time.sleep(min(aralik_dk * 60, kalan))
+        # telafi kartlari sirada ise (kisa aralikli gonderi) dakikada bir uyan; degilse aralik_dk
+        bekle = 60 if (durum_oku().get("telafi") or {}) else aralik_dk * 60
+        time.sleep(min(bekle, kalan))
 
 
 def main():
