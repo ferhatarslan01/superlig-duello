@@ -58,6 +58,28 @@
     "Forvet": 1
    },
    "bitti": false
+  },
+  "401888264": {
+   "yapilan": 1,
+   "oyuncular": [
+    "272700",
+    "216937"
+   ],
+   "roller": {
+    "Ofansif orta saha": 1
+   },
+   "bitti": false
+  },
+  "401888267": {
+   "yapilan": 1,
+   "oyuncular": [
+    "365404",
+    "173896"
+   ],
+   "roller": {
+    "Kanat": 1
+   },
+   "bitti": false
   }
  },
  "son_diger": "2026-10-25T15:01:20.991730+00:00"
