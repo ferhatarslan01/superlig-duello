@@ -1,0 +1,44 @@
+name: Bot döngüsü
+
+# GitHub'ın zamanlayıcısı 30 dakikalık aralıkları sık sık atladığı için tüm otomatik gönderiler
+# (maç öncesi, maç sonu, salı liderleri, perşembe Avrupa liderleri) tek bir uzun işte, 5 dakikada
+# bir kontrol edilerek yapılır. İş ~5,5 saat sürer ve bitince kendini yeniden başlatır.
+on:
+  schedule:
+    - cron: '23 */6 * * *'   # güvence: zincir kopmuşsa yeniden başlatır
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: bot-dongusu
+  cancel-in-progress: false
+
+jobs:
+  dongu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Döngü (5 dakikada bir kontrol)
+        run: python post.py dongu --dakika 335
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Kendini yeniden başlat
+        if: always()
+        run: gh workflow run dongu.yml
+        env:
+          GH_TOKEN: ${{ github.token }}

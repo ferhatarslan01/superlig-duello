@@ -1,6 +1,7 @@
 """Otomatik paylasim: kart uretir, `media` dalinda barindirir, Buffer ile X'e gonderir.
 
 Kullanim:
+  python post.py dongu --dakika 335   # uzun dongu: tum otomatik gonderiler (GitHub zamanlayicisina guvenmeden)
   python post.py oncesi           # maca yaklasan maclar icin sezon karsilastirmasi
   python post.py mac              # yeni biten maclar icin duello karti
   python post.py sezon            # haftalik sezon karsilastirmasi
@@ -259,6 +260,7 @@ def mod_liderler(dry, zorla=False):
 ONCE_MIN_DK = int(os.environ.get("ONCE_MIN_DK", "20"))     # maca en az bu kadar dakika varken paylas
 ONCE_MAX_DK = int(os.environ.get("ONCE_MAX_DK", "240"))    # buyuk-4 maclari icin: en fazla bu kadar dakika kala basla
 DIGER_ARALIK_DK = int(os.environ.get("DIGER_ARALIK_DK", "90"))   # diger maclarin kartlari arasi en az bu kadar dakika
+BUYUK_ARALIK_DK = int(os.environ.get("BUYUK_ARALIK_DK", "30"))   # ayni macin kartlari arasi en az bu kadar dakika
 DIGER_ACIL_DK = 120        # diger maca bu kadar dakikadan az kaldiysa aralik kurali aranmaz
 MAX_KART_PER_RUN = 2       # bir calismada toplam en fazla bu kadar kart
 BUYUK4 = {"galatasaray", "fenerbahce", "besiktas", "trabzonspor"}
@@ -358,6 +360,8 @@ def mod_oncesi(dry):
         if p["yapilan"] >= n:
             p["bitti"] = True
             continue
+        if p.get("son") and (simdi - datetime.fromisoformat(p["son"])).total_seconds() / 60 < BUYUK_ARALIK_DK:
+            continue   # ayni macin bir onceki kartindan beri yeterli sure gecmedi
         try:
             sonuc = sezon.mac_oncesi_cifti(ev_s, dep, f"{takim_adi(ev_s)} - {takim_adi(dep)}",
                                            kullanilan=p["oyuncular"], rol_sayac=p["roller"])
@@ -381,6 +385,7 @@ def mod_oncesi(dry):
             p["oyuncular"] += [str(a["id"]), str(b["id"])]
             p["roller"][rol] = p["roller"].get(rol, 0) + 1
             p["bitti"] = k >= n
+            p["son"] = simdi.isoformat()
             if diger:
                 son_diger = simdi
                 durum["son_diger"] = simdi.isoformat()
@@ -449,6 +454,66 @@ def mod_avrupa(dry, zorla=False):
         durum_yaz(durum)
 
 
+def durumu_kaydet():
+    """data/ degisikliklerini commit'le ve it (Actions'ta calisirken)."""
+    if not os.environ.get("GITHUB_REPOSITORY") or "--dry-run" in sys.argv:
+        return
+    git(KLASOR, "config", "user.name", "github-actions[bot]")
+    git(KLASOR, "config", "user.email", "github-actions[bot]@users.noreply.github.com")
+    git(KLASOR, "add", "-A", "data/", check=False)
+    if git(KLASOR, "diff", "--staged", "--quiet", check=False).returncode == 0:
+        return
+    git(KLASOR, "commit", "-q", "-m", "Güncelle: bot durumu [skip ci]", check=False)
+    if git(KLASOR, "push", check=False).returncode != 0:
+        git(KLASOR, "pull", "--rebase", "-q", check=False)
+        git(KLASOR, "push", "-q", check=False)
+
+
+def mod_dongu(dakika, aralik_dk=5, dry=False):
+    """Uzun calisan dongu: GitHub'in seyrek zamanlayicisina guvenmeden, `dakika` boyunca
+    her `aralik_dk` dakikada tum otomatik gonderileri (mac sonu, mac oncesi, sali liderleri,
+    persembe Avrupa liderleri) sirayla kontrol eder."""
+    import time
+    bitis = time.time() + dakika * 60
+    while time.time() < bitis:
+        if os.environ.get("GITHUB_REPOSITORY") and not dry:
+            git(KLASOR, "pull", "--rebase", "-q", check=False)     # elle yapilan degisiklikleri al
+        simdi = datetime.now(timezone.utc)
+        trt = simdi + timedelta(hours=3)
+        print(f"--- {trt:%d.%m %H:%M} TRT ---", flush=True)
+        for ad, fn in (("mac", lambda: mod_mac(dry)), ("oncesi", lambda: mod_oncesi(dry))):
+            try:
+                fn()
+            except BaseException as e:   # SystemExit dahil: bir mod dusse digerleri calissin
+                print(f"{ad}: hata: {e}", file=sys.stderr, flush=True)
+            durumu_kaydet()
+        if trt.weekday() == 1 and trt.hour >= 20:     # sali 20:00 sonrasi: Super Lig liderleri
+            try:
+                mod_liderler(dry)
+            except BaseException as e:
+                print(f"liderler: hata: {e}", file=sys.stderr, flush=True)
+            durumu_kaydet()
+        if trt.weekday() == 3 and 18 <= trt.hour < 23:   # persembe aksami: Avrupa liderleri, 30 dk arayla tek kart
+            durum = durum_oku()
+            son = durum.get("avrupa_son")
+            if not son or (simdi - datetime.fromisoformat(son)).total_seconds() >= 29 * 60:
+                try:
+                    once = (durum_oku().get("avrupa") or {}).get("gonderilen", [])
+                    mod_avrupa(dry)
+                    sonra = (durum_oku().get("avrupa") or {}).get("gonderilen", [])
+                    if sonra != once:
+                        d = durum_oku()
+                        d["avrupa_son"] = simdi.isoformat()
+                        durum_yaz(d)
+                except BaseException as e:
+                    print(f"avrupa: hata: {e}", file=sys.stderr, flush=True)
+                durumu_kaydet()
+        kalan = bitis - time.time()
+        if kalan <= 0:
+            break
+        time.sleep(min(aralik_dk * 60, kalan))
+
+
 def main():
     args = sys.argv[1:]
     dry = "--dry-run" in args
@@ -459,6 +524,9 @@ def main():
         mod_sezon(dry, [a for a in args[1:] if not a.startswith("--")] if args and args[0] == "sezon" else ())
     elif mod == "oncesi":
         mod_oncesi(dry)
+    elif mod == "dongu":
+        dk = float(args[args.index("--dakika") + 1]) if "--dakika" in args else 335
+        mod_dongu(dk, dry=dry)
     elif mod == "avrupa":
         mod_avrupa(dry, zorla="--zorla" in args)
     elif mod == "liderler":

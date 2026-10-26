@@ -1,8 +1,8 @@
 name: Avrupa kupaları liderleri
 
 on:
-  schedule:
-    - cron: '*/30 15-19 * * 4' # perşembe 18:00-23:00 TRT, her çalışmada tek kart (toplam 9)
+  # Zamanlama kapatıldı: Perşembe Avrupa liderleri artık dongu.yml içinde (5 dakikada bir kontrol) çalışıyor.
+  # Elle çalıştırmak için Actions > Run workflow.
   workflow_dispatch: {}
 
 permissions:

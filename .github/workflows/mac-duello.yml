@@ -1,8 +1,8 @@
 name: Maç sonu düellosu
 
 on:
-  schedule:
-    - cron: '*/30 10-22 * * *' # maç saatlerinde 30 dakikada bir (UTC)
+  # Zamanlama kapatıldı: Maç sonu artık dongu.yml içinde (5 dakikada bir kontrol) çalışıyor.
+  # Elle çalıştırmak için Actions > Run workflow.
   workflow_dispatch: {}
 
 permissions:

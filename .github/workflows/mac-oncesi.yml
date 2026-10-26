@@ -1,8 +1,8 @@
 name: Maç öncesi karşılaştırma
 
 on:
-  schedule:
-    - cron: '*/30 6-20 * * *' # maç günlerinde 30 dakikada bir (UTC); maça 1-4 saat kala paylaşır
+  # Zamanlama kapatıldı: Maç öncesi artık dongu.yml içinde (5 dakikada bir kontrol) çalışıyor.
+  # Elle çalıştırmak için Actions > Run workflow.
   workflow_dispatch: {}
 
 permissions:

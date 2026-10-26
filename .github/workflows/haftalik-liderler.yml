@@ -1,8 +1,8 @@
 name: Haftalık liderler
 
 on:
-  schedule:
-    - cron: '0 17 * * 2' # her salı 20:00 TRT
+  # Zamanlama kapatıldı: Salı liderleri artık dongu.yml içinde (5 dakikada bir kontrol) çalışıyor.
+  # Elle çalıştırmak için Actions > Run workflow.
   workflow_dispatch: {}
 
 permissions:
