@@ -19,6 +19,7 @@
    "champions:kart",
    "conf:asist",
    "conf:gol",
+   "conf:kart",
    "europa:asist",
    "europa:gol",
    "europa:kart"
@@ -130,5 +131,5 @@
    "kart"
   ]
  },
- "avrupa_son": "2026-10-29T18:07:47.249477+00:00"
+ "avrupa_son": "2026-10-29T18:38:06.793705+00:00"
 }
