@@ -14,6 +14,7 @@
  "avrupa": {
   "hafta": "2026-W44",
   "gonderilen": [
+   "champions:asist",
    "champions:gol"
   ]
  },
@@ -122,5 +123,6 @@
    "gol",
    "kart"
   ]
- }
+ },
+ "avrupa_son": "2026-10-29T15:05:53.113200+00:00"
 }
