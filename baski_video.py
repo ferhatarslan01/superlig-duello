@@ -9,7 +9,7 @@ dalgalanma ve gol oncesi yukselis sentetiktir. Videoda bu acikca yazar ("Baski: 
 Kullanim:
   python baski_video.py --tarih 2026-10-26 --takim Galatasaray --onizleme 62     # tek kare PNG
   python baski_video.py --tarih 2026-10-26 --takim Galatasaray                    # MP4
-Ortam: APIFOOTBALL_KEY
+Ortam: PITCHAPI_API_KEY (gercek dakikalik momentum); yoksa APIFOOTBALL_KEY (model)
 """
 import json
 import math
@@ -119,13 +119,73 @@ def veri_hazirla(e):
     }
 
 
+# ---------------- gercek momentum: PitchAPI ----------------
+PITCH = "https://api.pitchapi.dev"
+
+
+def _pitch(yol):
+    k = os.environ.get("PITCHAPI_API_KEY")
+    if not k:
+        return None
+    req = urllib.request.Request(PITCH + yol, headers={"X-API-KEY": k, "User-Agent": "statduel-bot/0.1"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.load(r)["data"]
+
+
+def veri_pitch(tarih, takim):
+    """PitchAPI'den dakikalik gercek momentum + olaylar. Anahtar ya da momentum yoksa None doner."""
+    if not os.environ.get("PITCHAPI_API_KEY"):
+        return None
+    gun = _pitch(f"/v1/date/{tarih}")
+    maclar = gun["matches"] if isinstance(gun, dict) else gun
+    m = next((x for x in maclar if "Super Lig" in x["league"]["name"]
+              and takim.lower() in (x["home_team"]["name"] + " " + x["away_team"]["name"]).lower()), None)
+    if not m:
+        return None
+    pts = (_pitch(f"/v1/matches/{m['id']}/momentum") or {}).get("points", [])
+    if len(pts) < 20:   # bos ya da cok eksik: model yedegine dus
+        return None
+    olaylar = (_pitch(f"/v1/matches/{m['id']}/events") or {}).get("events", [])
+    ev_id = m["home_team"]["id"]
+
+    def zaman(e):
+        return e["minute"] + 0.4 * (e.get("minute_added") or 0)
+
+    def gosterim(e):
+        return f"{e['minute']}" + (f"+{e['minute_added']}" if e.get("minute_added") else "")
+    goller = [{"t": zaman(e), "dk": gosterim(e), "takim": "ev" if e["team_id"] == ev_id else "dep",
+               "oyuncu": e["player"]["name"], "skor": ""} for e in olaylar if e["event_type"] == "goal"]
+    kartlar = [{"t": zaman(e), "takim": "ev" if e["team_id"] == ev_id else "dep", "kart": e["event_type"]}
+               for e in olaylar if "card" in e["event_type"]]
+    return {
+        "id": m["id"].replace("m_", "").encode().hex()[:8], "ev": m["home_team"]["name"], "dep": m["away_team"]["name"],
+        "tarih": tarih, "t1": 45, "t2": max(p["minute"] for p in pts), "s1": 0,
+        "goller": sorted(goller, key=lambda g: g["t"]), "kartlar": kartlar,
+        "skor": (m["score_home"], m["score_away"]), "momentum": [(p["minute"], p["value"]) for p in pts],
+        "kaynak": "pitchapi",
+    }
+
+
+def momentum_egrileri(v, adim=0.25):
+    """Gercek momentum (-100..100; + ev, - deplasman) -> iki takimin baski egrisi."""
+    pts = v["momentum"]
+    t = np.arange(0, v["t2"] + adim, adim)
+    dk = np.array([p[0] for p in pts], float)
+    deger = np.array([p[1] for p in pts], float) / 100.0
+    s = np.interp(t, dk, deger)
+    kernel = np.ones(int(2.0 / adim)) / int(2.0 / adim)       # 2 dk yumusatma
+    s = np.convolve(s, kernel, mode="same")
+    taban = 0.12
+    return t, np.maximum(s, 0) + taban, np.maximum(-s, 0) + taban
+
+
 # ---------------- model: yari bazli gercek toplamlar -> dakikalik baski ----------------
 def baski_egrileri(v, adim=0.25):
     """Dakikalik baski egrisi (ev, dep). Her yarinin ortalamasi gercek yari verisinden gelir;
     dalgalanma ve gol oncesi yukselis sentetiktir."""
     T = v["t2"]
     t = np.arange(0, T + adim, adim)
-    rng = np.random.default_rng(int(v["id"]) % (2 ** 32))
+    rng = np.random.default_rng(_tohum(v["id"]) % (2 ** 32))
     sonuc = {}
     for k, idx in (("ev", 0), ("dep", 1)):
         base = np.zeros_like(t)
@@ -164,6 +224,14 @@ def baski_egrileri(v, adim=0.25):
 
 
 # ---------------- cizim ----------------
+def _tohum(i):
+    """Mac kimligi sayi ya da metin olabilir; deterministik tohum."""
+    try:
+        return int(i)
+    except (TypeError, ValueError):
+        return sum(ord(c) * (31 ** n) for n, c in enumerate(str(i)))
+
+
 def _f(boyut, kalin=True):
     return ImageFont.truetype(str(FONT_B if kalin else FONT_R), int(boyut))
 
@@ -171,12 +239,12 @@ def _f(boyut, kalin=True):
 class Sahne:
     def __init__(self, v):
         self.v = v
-        self.t, self.pe, self.pd = baski_egrileri(v)
+        self.t, self.pe, self.pd = momentum_egrileri(v) if v.get("momentum") else baski_egrileri(v)
         self.pmax = max(self.pe.max(), self.pd.max())
         xs = np.linspace(0, 1, NX)
         ys = np.linspace(0, 1, NY)
         self.X, self.Y = np.meshgrid(xs, ys, indexing="ij")
-        self.faz = np.random.default_rng(int(v["id"]) % 9973).uniform(0, 6.28, 4)
+        self.faz = np.random.default_rng(_tohum(v["id"]) % 9973).uniform(0, 6.28, 4)
         # ekran geometrisi (Z haric) bir kez
         self.S = int(W * SS)
         th = math.radians(-26)
@@ -319,7 +387,8 @@ class Sahne:
         d.text((W - 48 - d.textlength(devre, font=_f(34, False)), 176), devre, font=_f(34, False), fill=GRI)
         ust = f"SÜPER LİG · {v['tarih'][8:]}.{v['tarih'][5:7]}"
         d.text((W - 48 - d.textlength(ust, font=_f(30, False)), 218), ust, font=_f(30, False), fill=SOLUK)
-        not_ = "Baskı: model tahmini (yarı bazlı gerçek veriden)"
+        not_ = ("Baskı: dakikalık momentum verisi (PitchAPI)" if v.get("kaynak") == "pitchapi"
+                else "Baskı: model tahmini (yarı bazlı gerçek veriden)")
         d.text((W - 48 - d.textlength(not_, font=_f(22, False)), 262), not_, font=_f(22, False), fill=(130, 138, 160))
         # alt: baski grafigi
         self._grafik(d, dakika)
@@ -400,7 +469,12 @@ def main():
     dk_sn = float(a[a.index("--dakika-saniye") + 1]) if "--dakika-saniye" in a else 2.2   # video sn basina mac dakikasi
     if not (tarih and takim):
         raise SystemExit(__doc__)
-    v = veri_hazirla(mac_bul(tarih, takim))
+    v = None if "--model" in a else veri_pitch(tarih, takim)
+    if v:
+        print("KAYNAK: PitchAPI gercek momentum,", len(v["momentum"]), "nokta")
+    else:
+        print("KAYNAK: model (momentum verisi yok ya da --model)")
+        v = veri_hazirla(mac_bul(tarih, takim))
     print(v["ev"], v["skor"][0], "-", v["skor"][1], v["dep"], "| goller:", [(g["dk"], g["oyuncu"]) for g in v["goller"]])
     sahne = Sahne(v)
     OUT.mkdir(exist_ok=True)
