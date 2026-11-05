@@ -35,6 +35,7 @@ jobs:
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+          PITCHAPI_API_KEY: ${{ secrets.PITCHAPI_API_KEY }}
           GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Kendini yeniden başlat

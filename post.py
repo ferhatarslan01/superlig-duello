@@ -7,6 +7,7 @@ Kullanim:
   python post.py sezon            # haftalik sezon karsilastirmasi
   python post.py sezon Osimhen Muriqi   # belirli iki oyuncu
   python post.py liderler         # sali: Super Lig gol krali, asist krali, kartlar (3 ayri gonderi)
+  python post.py video            # biten buyuk maclar: baski + sut haritasi videosu (muzikli)
   python post.py avrupa           # persembe aksami: Sampiyonlar/Avrupa/Konferans Ligi liderleri (9 kart)
   ... --dry-run                   # kart + metin uretir, hicbir sey gondermez / kaydetmez
 
@@ -103,7 +104,9 @@ def buffer_gonder(metin: str, gorsel_urller):
         }
       }"""
     govde = json.dumps({"query": sorgu, "variables": {
-        "text": metin, "channelId": kanal, "assets": [{"image": {"url": u}} for u in gorsel_urller]}}).encode()
+        "text": metin, "channelId": kanal,
+        "assets": [({"video": {"url": u}} if u.lower().endswith(".mp4") else {"image": {"url": u}})
+                   for u in gorsel_urller]}}).encode()
     istek = urllib.request.Request(BUFFER_URL, data=govde, headers={
         "Content-Type": "application/json", "Authorization": f"Bearer {anahtar}"})
     with urllib.request.urlopen(istek, timeout=60) as r:
@@ -512,6 +515,86 @@ def mod_telafi(dry):
         return   # calisma basina tek kart
 
 
+# ---------- maç sonu videolari (baski + sut haritasi) ----------
+VIDEO_PENCERE_SAAT = int(os.environ.get("VIDEO_PENCERE_SAAT", "12"))   # bundan eski maclar icin video uretilmez
+VIDEO_HEPSI = os.environ.get("VIDEO_HEPSI") == "1"                    # 1: tum maclar; varsayilan yalniz buyuk 4 maclari
+MUZIK = KLASOR / "assets" / "muzik" / "funky-brazilian-phonk.wav"
+GOL_SESI = KLASOR / "assets" / "muzik" / "football-goal.mp3"
+KUNYE = "Müzik: Funky Brazilian Phonk – BudgetPixel (CC BY 4.0)"
+VIDEO_TURLERI = (("baski", "Maçın baskı grafiği"), ("sut", "Maçın şut haritası"))
+
+
+def biten_super_lig_maclari():
+    """PitchAPI'den son VIDEO_PENCERE_SAAT saatte biten Super Lig maclari (buyuk 4 filtresiyle)."""
+    import baski_video
+    simdi = datetime.now(timezone.utc)
+    sonuc = []
+    for g in range(VIDEO_PENCERE_SAAT // 24 + 2):
+        gun = f"{simdi - timedelta(days=g):%Y-%m-%d}"
+        veri = baski_video._pitch(f"/v1/date/{gun}")
+        for m in (veri["matches"] if isinstance(veri, dict) else veri or []):
+            if "Super Lig" not in m["league"]["name"] or m.get("status") != "finished":
+                continue
+            bas = datetime.fromisoformat(m["time_utc"].replace("Z", "+00:00"))
+            if simdi - bas > timedelta(hours=VIDEO_PENCERE_SAAT) or simdi - bas < timedelta(minutes=110):
+                continue
+            ev, dep = m["home_team"]["name"], m["away_team"]["name"]
+            if not VIDEO_HEPSI and buyuk_sayisi(ev, dep) == 0:
+                continue
+            sonuc.append((m["id"], gun, ev, dep, m["score_home"], m["score_away"]))
+    return sonuc
+
+
+def video_metni(tur_baslik, ev, dep, sh, sa):
+    from kart_v2 import takim_adi
+    return "\n\n".join([f"{takim_adi(ev)} {sh}-{sa} {takim_adi(dep)}", f"{tur_baslik} 👇", KUNYE,
+                         "#SüperLig #Futbol"])
+
+
+def mod_video(dry):
+    """Yeni biten buyuk maclar icin baski ve sut haritasi videolarini sirayla gonderir (calisma basina tek video)."""
+    if not os.environ.get("PITCHAPI_API_KEY"):
+        print("PITCHAPI_API_KEY yok; video atlandi")
+        return
+    durum = durum_oku()
+    yapilan = durum.setdefault("videolar", {})
+    deneme = durum.setdefault("video_deneme", {})
+    for mid, gun, ev, dep, sh, sa in biten_super_lig_maclari():
+        for tur, baslik in VIDEO_TURLERI:
+            anahtar = f"{mid}:{tur}"
+            if yapilan.get(anahtar) or deneme.get(anahtar, 0) >= 3:
+                continue
+            import muzik
+            try:
+                if tur == "baski":
+                    import baski_video as modul
+                else:
+                    import sut_video as modul
+                sonuc = modul.uret(gun, ev)
+                if sonuc is None:
+                    print(f"{anahtar}: veri hazir degil, sonra tekrar denenecek")
+                    continue
+                yol, goller = sonuc
+                yol = muzik.videoya_ekle(yol, goller, 2.2, "harici", str(MUZIK), -22, str(GOL_SESI), 2.5)
+            except Exception as e:
+                print(f"{anahtar}: video uretilemedi ({e}); sonra tekrar denenecek", file=sys.stderr)
+                continue
+            try:
+                gonderildi = paylas(video_metni(baslik, ev, dep, sh, sa), yol, dry)
+            except BaseException as e:          # SystemExit dahil: gonderim hatasi 3 denemeden sonra birakilir
+                deneme[anahtar] = deneme.get(anahtar, 0) + 1
+                print(f"{anahtar}: gonderilemedi ({e}); deneme {deneme[anahtar]}/3", file=sys.stderr)
+                if not dry:
+                    durum_yaz(durum)
+                return
+            if gonderildi and not dry:
+                yapilan[anahtar] = datetime.now(timezone.utc).isoformat()
+                for k in list(yapilan)[:-100]:
+                    yapilan.pop(k)
+                durum_yaz(durum)
+            return   # calisma basina tek video (iki video arasi >= dongu araligi)
+
+
 def durumu_kaydet():
     """data/ degisikliklerini commit'le ve it (Actions'ta calisirken)."""
     if not os.environ.get("GITHUB_REPOSITORY") or "--dry-run" in sys.argv:
@@ -539,7 +622,8 @@ def mod_dongu(dakika, aralik_dk=5, dry=False):
         simdi = datetime.now(timezone.utc)
         trt = simdi + timedelta(hours=3)
         print(f"--- {trt:%d.%m %H:%M} TRT ---", flush=True)
-        for ad, fn in (("mac", lambda: mod_mac(dry)), ("oncesi", lambda: mod_oncesi(dry)), ("telafi", lambda: mod_telafi(dry))):
+        for ad, fn in (("mac", lambda: mod_mac(dry)), ("oncesi", lambda: mod_oncesi(dry)), ("telafi", lambda: mod_telafi(dry)),
+                       ("video", lambda: mod_video(dry))):
             try:
                 fn()
             except BaseException as e:   # SystemExit dahil: bir mod dusse digerleri calissin
@@ -587,6 +671,8 @@ def main():
     elif mod == "dongu":
         dk = float(args[args.index("--dakika") + 1]) if "--dakika" in args else 335
         mod_dongu(dk, dry=dry)
+    elif mod == "video":
+        mod_video(dry)
     elif mod == "avrupa":
         mod_avrupa(dry, zorla="--zorla" in args)
     elif mod == "liderler":

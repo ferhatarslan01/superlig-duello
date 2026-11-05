@@ -489,6 +489,34 @@ def _gosterim(dakika, v):
 
 
 # ---------------- calistirma ----------------
+def _render(v, sahne, dk_sn):
+    toplam_kare = int((v["t2"] / dk_sn + 3.0) * FPS)
+    yol = OUT / f"baski_{v['id']}.mp4"
+    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
+                           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
+                           "-preset", "medium", str(yol)], stdin=subprocess.PIPE)
+    for n in range(toplam_kare):
+        dakika = min(n / FPS * dk_sn, v["t2"])
+        im = sahne.bindir(sahne.kare(dakika, sahne.flas(dakika, 1 / dk_sn)), dakika, 1 / dk_sn)
+        ff.stdin.write(im.tobytes())
+        if n % 120 == 0:
+            print(f"kare {n}/{toplam_kare}", flush=True)
+    ff.stdin.close()
+    ff.wait()
+    return yol
+
+
+
+def uret(tarih, takim, dk_sn=2.2):
+    """Otomasyon girisi: (mp4 yolu, gol dakikalari) ya da gercek momentum yoksa None (model uydurma yok)."""
+    v = veri_pitch(tarih, takim)
+    if not v:
+        return None
+    OUT.mkdir(exist_ok=True)
+    yol = _render(v, Sahne(v), dk_sn)
+    return yol, [g["t"] for g in v["goller"]]
+
+
 def main():
     a = sys.argv[1:]
     tarih = a[a.index("--tarih") + 1] if "--tarih" in a else None
@@ -512,20 +540,7 @@ def main():
         im.save(yol)
         print(yol)
         return
-    toplam_kare = int((v["t2"] / dk_sn + 3.0) * FPS)
-    yol = OUT / f"baski_{v['id']}.mp4"
-    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-                           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
-                           "-preset", "medium", str(yol)], stdin=subprocess.PIPE)
-    for n in range(toplam_kare):
-        dakika = min(n / FPS * dk_sn, v["t2"])
-        im = sahne.bindir(sahne.kare(dakika, sahne.flas(dakika, 1 / dk_sn)), dakika, 1 / dk_sn)
-        ff.stdin.write(im.tobytes())
-        if n % 120 == 0:
-            print(f"kare {n}/{toplam_kare}", flush=True)
-    ff.stdin.close()
-    ff.wait()
-    print(yol)
+    print(_render(v, sahne, dk_sn))
 
 
 if __name__ == "__main__":

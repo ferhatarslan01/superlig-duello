@@ -177,6 +177,31 @@ class Sahne:
         return im
 
 
+def _render(v, sahne, dk_sn):
+    toplam = int((v["t2"] / dk_sn + 3.0) * FPS)
+    yol = OUT / f"sut_{v['id']}.mp4"
+    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
+                           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
+                           "-preset", "medium", str(yol)], stdin=subprocess.PIPE)
+    for n in range(toplam):
+        dakika = min(n / FPS * dk_sn, v["t2"])
+        ff.stdin.write(sahne.kare(dakika, 1 / dk_sn).tobytes())
+        if n % 120 == 0:
+            print(f"kare {n}/{toplam}", flush=True)
+    ff.stdin.close()
+    ff.wait()
+    return yol
+
+
+
+def uret(tarih, takim, dk_sn=2.2):
+    """Otomasyon girisi: (mp4 yolu, gol dakikalari)."""
+    v = veri_sut(tarih, takim)
+    OUT.mkdir(exist_ok=True)
+    yol = _render(v, Sahne(v), dk_sn)
+    return yol, [s["t"] for s in v["sutlar"] if s["tur"] == "gol"]
+
+
 def main():
     a = sys.argv[1:]
     tarih = a[a.index("--tarih") + 1] if "--tarih" in a else None
@@ -196,19 +221,7 @@ def main():
         sahne.kare(onizleme, 1 / dk_sn).save(yol)
         print(yol)
         return
-    toplam = int((v["t2"] / dk_sn + 3.0) * FPS)
-    yol = OUT / f"sut_{v['id']}.mp4"
-    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-                           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
-                           "-preset", "medium", str(yol)], stdin=subprocess.PIPE)
-    for n in range(toplam):
-        dakika = min(n / FPS * dk_sn, v["t2"])
-        ff.stdin.write(sahne.kare(dakika, 1 / dk_sn).tobytes())
-        if n % 120 == 0:
-            print(f"kare {n}/{toplam}", flush=True)
-    ff.stdin.close()
-    ff.wait()
-    print(yol)
+    print(_render(v, sahne, dk_sn))
 
 
 if __name__ == "__main__":
