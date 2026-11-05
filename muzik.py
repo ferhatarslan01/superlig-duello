@@ -5,7 +5,7 @@ yukselen gerilim (riser) + dusuk darbe (impact) + kisa ses cekilmesi (sidechain)
 
 Kullanim:
   python muzik.py out/baski_334a7356.mp4 --goller 29,44,62 --dk-sn 2.2      # <video>_muzikli.mp4
-(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi; --stil rekabet|celestial)
+(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi; --stil rekabet|celestial|harici --dosya <wav>)
 """
 import subprocess
 import sys
@@ -263,13 +263,113 @@ def uret_celestial(sure, goller_sn, yol_wav):
     return mix
 
 
-def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet"):
+# ---------------- harici (lisansli) parca: dongu + gol vuruslari ----------------
+def _wav_oku(yol):
+    with wave.open(str(yol), "rb") as w:
+        n, ch = w.getnframes(), w.getnchannels()
+        x = np.frombuffer(w.readframes(n), dtype="<i2").reshape(-1, ch).astype(float) / 32768
+        sr = w.getframerate()
+    assert sr == SR, f"ornekleme hizi {sr} != {SR}"
+    return x if ch == 2 else np.stack([x[:, 0], x[:, 0]], axis=1)
+
+
+def bpm_bul(x, bas=60, son=200):
+    """Basit tempo kestirimi: dusuk frekans enerji zarfi uzerinde otokorelasyon."""
+    m = x.mean(axis=1)
+    alcak = _alcak_geciren(m, 180)
+    adim = int(0.01 * SR)
+    zarf = np.array([np.sqrt((alcak[i:i + adim * 2] ** 2).mean()) for i in range(0, len(alcak) - adim * 2, adim)])
+    fark = np.maximum(np.diff(zarf), 0)
+    fark -= fark.mean()
+    ac = np.correlate(fark, fark, "full")[len(fark) - 1:]
+    en = (None, -1)
+    for bpm10 in range(bas * 10, son * 10, 2):
+        lag = 60.0 / (bpm10 / 10) / 0.01
+        i = int(round(lag))
+        if i + 1 >= len(ac):
+            continue
+        d = ac[i] * (1 - (lag - i)) + ac[i + 1] * (lag - i)
+        if d > en[1]:
+            en = (bpm10 / 10, d)
+    return en[0]
+
+
+def ilk_vurus(x, esik=0.35):
+    """Ilk guclu alcak frekans vurusunun zamani (saniye): dongunun hizalanacagi nokta."""
+    alcak = np.abs(_alcak_geciren(x.mean(axis=1), 150))
+    adim = int(0.005 * SR)
+    zarf = np.array([alcak[i:i + adim].max() for i in range(0, len(alcak) - adim, adim)])
+    i = int(np.argmax(zarf > esik * zarf.max()))
+    return i * 0.005
+
+
+def uret_harici(dosya, sure, goller_sn, yol_wav):
+    x = _wav_oku(dosya)
+    bpm = bpm_bul(x)
+    ilk = ilk_vurus(x)
+    bar = 4 * 60.0 / bpm
+    # enerji dususu: parcanin sonundaki kisilma (outro) dongu disinda kalsin
+    m = x.mean(axis=1)
+    pen = SR
+    zarf = np.array([20 * np.log10(np.sqrt((m[i:i + pen] ** 2).mean()) + 1e-9)
+                     for i in range(int(ilk * SR), len(m) - pen, int(0.25 * SR))])
+    tepe = zarf.max()
+    dus = np.where(zarf < tepe - 4.0)[0]
+    t_son = ilk + (dus[0] * 0.25 if len(dus) else len(m) / SR - ilk)
+    n_bar = max(int((t_son - ilk) // bar), 4)
+    dongu = x[int(ilk * SR):int((ilk + n_bar * bar) * SR)]
+    giris = x[:0]                       # sessiz giris atlanir: video dogrudan enerjiyle baslar
+    print(f"tempo ~{bpm:.1f} BPM | ilk vurus {ilk:.2f}s | bar {bar:.2f}s | dongu {n_bar} bar ({len(dongu) / SR:.1f}s)")
+    cf = int(0.03 * SR)
+    cikis = [giris, dongu]
+    toplam = len(giris) + len(dongu)
+    while toplam < sure * SR + SR:
+        cikis.append(dongu)
+        toplam += len(dongu)
+    y = cikis[0]
+    for parca in cikis[1:]:
+        k = min(cf, len(parca), len(y))
+        w = np.linspace(0, 1, k)[:, None]
+        y = np.concatenate([y[:-k], y[-k:] * np.sqrt(1 - w) + parca[:k] * np.sqrt(w), parca[k:]])
+    n = int(sure * SR)
+    mix = np.zeros((n + SR, 2))
+    mix[:min(len(y), len(mix))] = y[:len(mix)]
+    rng = np.random.default_rng(5)
+    sc = np.ones(len(mix))
+    for g in goller_sn:
+        a, b = int((g - 0.06) * SR), int((g + 0.45) * SR)
+        sc[max(a, 0):b] *= 0.40
+        sc[int(max(g - 0.25, 0) * SR):max(a, 0)] *= 0.65
+    mix *= sc[:, None]
+    for g in goller_sn:
+        r, d = riser(1.6, rng), darbe(rng)
+        for ch in (0, 1):
+            _ekle(mix[:, ch], r, max(g - 1.6, 0), 0.8)
+            _ekle(mix[:, ch], d, g, 1.1)
+    mix = mix[:n]
+    son = int(2.0 * SR)
+    mix[-son:] *= (np.linspace(1, 0, son) ** 1.5)[:, None]
+    mix = np.tanh(mix * 0.9)
+    mix /= max(np.abs(mix).max(), 1e-9)
+    mix *= 0.89
+    with wave.open(str(yol_wav), "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes((mix * 32767).astype("<i2").tobytes())
+    return mix[:, 0]
+
+
+def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None):
     video = Path(video)
     sure = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                           "-of", "default=nw=1:nk=1", str(video)]).decode().strip())
     goller_sn = [g / dk_sn for g in goller_dk]
     wav = video.with_suffix(".muzik.wav")
-    mix = (uret_celestial if stil == "celestial" else uret)(sure, goller_sn, wav)
+    if stil == "harici":
+        mix = uret_harici(dosya, sure, goller_sn, wav)
+    else:
+        mix = (uret_celestial if stil == "celestial" else uret)(sure, goller_sn, wav)
     cikis = video.with_name(video.stem + f"_muzikli_{stil}.mp4")
     subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(wav),
                            "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=9", "-c:a", "aac", "-b:a", "192k",
@@ -285,4 +385,5 @@ if __name__ == "__main__":
     goller = [float(x) for x in a[a.index("--goller") + 1].split(",")] if "--goller" in a else []
     dk_sn = float(a[a.index("--dk-sn") + 1]) if "--dk-sn" in a else 2.2
     stil = a[a.index("--stil") + 1] if "--stil" in a else "rekabet"
-    print(videoya_ekle(a[0], goller, dk_sn, stil))
+    dosya = a[a.index("--dosya") + 1] if "--dosya" in a else None
+    print(videoya_ekle(a[0], goller, dk_sn, stil, dosya))
