@@ -27,7 +27,8 @@
    "champions:gol",
    "champions:kart",
    "europa:asist",
-   "europa:gol"
+   "europa:gol",
+   "europa:kart"
   ]
  },
  "oncesi": {
@@ -281,5 +282,5 @@
    "kart"
   ]
  },
- "avrupa_son": "2026-11-05T17:09:24.750407+00:00"
+ "avrupa_son": "2026-11-05T17:39:36.962256+00:00"
 }
