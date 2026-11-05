@@ -303,7 +303,27 @@ def ilk_vurus(x, esik=0.35):
     return i * 0.005
 
 
-def uret_harici(dosya, sure, goller_sn, yol_wav):
+def kalabalik(rng, sure=3.6):
+    """Sentezlenmis stadyum tezahurati: formant bantli gurultu, kalabalik dalgalanmasi,
+    hizli yukselen ve yavas sonen zarf."""
+    n = int(sure * SR)
+    t = np.arange(n) / SR
+    f = np.fft.rfftfreq(n, 1 / SR)
+    toplam = np.zeros(n)
+    for fc, bw, kazanc in ((520, 220, 1.0), (1150, 420, 0.9), (2300, 800, 0.6), (4200, 1500, 0.3)):
+        gurultu = rng.normal(0, 1, n)
+        spek = np.fft.rfft(gurultu) * np.exp(-0.5 * ((f - fc) / bw) ** 2)
+        bant = np.fft.irfft(spek, n)
+        # kalabalik titresimi: her bant kendi yavas, rastgele genlik dalgalanmasiyla
+        titre = np.fft.irfft(np.fft.rfft(rng.normal(0, 1, n)) * np.exp(-0.5 * (f / 5.0) ** 2), n)
+        titre = 1 + 0.45 * titre / max(np.abs(titre).max(), 1e-9)
+        toplam += bant / max(np.abs(bant).max(), 1e-9) * kazanc * titre
+    zarf = np.minimum((t / 0.28) ** 1.4, 1.0) * np.where(t < 1.3, 1.0, np.exp(-(t - 1.3) / 0.85))
+    ses = toplam * zarf
+    return ses / max(np.abs(ses).max(), 1e-9) * 0.9
+
+
+def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=True):
     x = _wav_oku(dosya)
     bpm = bpm_bul(x)
     ilk = ilk_vurus(x)
@@ -340,12 +360,16 @@ def uret_harici(dosya, sure, goller_sn, yol_wav):
         a, b = int((g - 0.06) * SR), int((g + 0.45) * SR)
         sc[max(a, 0):b] *= 0.40
         sc[int(max(g - 0.25, 0) * SR):max(a, 0)] *= 0.65
+        sc[b:int((g + 2.6) * SR)] *= 0.55                 # kalabalik duyulsun diye muzik hafif geri cekilir
     mix *= sc[:, None]
     for g in goller_sn:
         r, d = riser(1.6, rng), darbe(rng)
+        k = kalabalik(rng) if gol_sesi else None
         for ch in (0, 1):
             _ekle(mix[:, ch], r, max(g - 1.6, 0), 0.55)
             _ekle(mix[:, ch], d, g, 0.75)
+            if k is not None:
+                _ekle(mix[:, ch], k, g + 0.05, 3.4)
     mix = mix[:n]
     son = int(2.0 * SR)
     mix[-son:] *= (np.linspace(1, 0, son) ** 1.5)[:, None]
@@ -360,6 +384,14 @@ def uret_harici(dosya, sure, goller_sn, yol_wav):
     return mix[:, 0]
 
 
+def _lufs(yol):
+    """Entegre ses siddeti (LUFS), ffmpeg ebur128 ile."""
+    import re
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(yol), "-af", "ebur128=peak=true",
+                        "-f", "null", "-"], capture_output=True, text=True)
+    return float(re.findall(r"I:\s+(-?\d+\.\d+) LUFS", r.stderr)[-1])
+
+
 def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None, lufs=-22):
     video = Path(video)
     sure = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
@@ -371,8 +403,11 @@ def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None, lufs=-
     else:
         mix = (uret_celestial if stil == "celestial" else uret)(sure, goller_sn, wav)
     cikis = video.with_name(video.stem + f"_muzikli_{stil}.mp4")
+    # dinamikleri bozmadan (loudnorm degil) sabit kazancla hedef seviyeye cek: gol vuruslari/tezahurat korunur
+    kazanc = lufs - _lufs(wav)
     subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(wav),
-                           "-c:v", "copy", "-af", f"loudnorm=I={lufs}:TP=-3:LRA=7", "-c:a", "aac", "-b:a", "192k",
+                           "-c:v", "copy", "-af", f"volume={kazanc:.2f}dB,alimiter=limit=0.7:level=disabled",
+                           "-c:a", "aac", "-b:a", "192k",
                            "-shortest", str(cikis)])
     print(f"tepe: {20 * np.log10(np.abs(mix).max()):.1f} dBFS | rms: {20 * np.log10(np.sqrt((mix ** 2).mean())):.1f} dBFS")
     return cikis
