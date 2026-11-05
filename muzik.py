@@ -5,7 +5,7 @@ yukselen gerilim (riser) + dusuk darbe (impact) + kisa ses cekilmesi (sidechain)
 
 Kullanim:
   python muzik.py out/baski_334a7356.mp4 --goller 29,44,62 --dk-sn 2.2      # <video>_muzikli.mp4
-(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi; --stil rekabet|celestial|harici --dosya <wav> --lufs -22)
+(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi; --stil rekabet|celestial|harici --dosya <wav> --lufs -22 --gol-ses <mp3/wav> --gol-ses-sn 2.5)
 """
 import subprocess
 import sys
@@ -323,7 +323,20 @@ def kalabalik(rng, sure=3.6):
     return ses / max(np.abs(ses).max(), 1e-9) * 0.9
 
 
-def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False, ses_dosyasi=None):
+def gol_sesi_yukle(yol, sn=2.5):
+    """Kullanicinin verdigi ses dosyasinin ilk `sn` saniyesi (mono/stereo -> stereo, 44.1 kHz),
+    basinda 15 ms, sonunda 0.5 sn yumusak kapanisla."""
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(yol), "-t", str(sn), "-f", "s16le", "-ac", "2",
+                          "-ar", str(SR), "-"], capture_output=True, check=True).stdout
+    x = np.frombuffer(raw, dtype="<i2").reshape(-1, 2).astype(float) / 32768
+    n = len(x)
+    giris, cikis = int(0.015 * SR), int(0.5 * SR)
+    x[:giris] *= np.linspace(0, 1, giris)[:, None]
+    x[-cikis:] *= np.linspace(1, 0, cikis)[:, None] ** 1.3
+    return x / max(np.abs(x).max(), 1e-9) * 0.9
+
+
+def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False, ses_dosyasi=None, ses_sn=2.5):
     x = _wav_oku(dosya)
     bpm = bpm_bul(x)
     ilk = ilk_vurus(x)
@@ -360,16 +373,21 @@ def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False,
         a, b = int((g - 0.06) * SR), int((g + 0.45) * SR)
         sc[max(a, 0):b] *= 0.40
         sc[int(max(g - 0.25, 0) * SR):max(a, 0)] *= 0.65
-        if gol_sesi:
-            sc[b:int((g + 2.6) * SR)] *= 0.55             # kalabalik duyulsun diye muzik hafif geri cekilir
+        if gol_sesi or ses_dosyasi:
+            sc[b:int((g + 2.6) * SR)] *= 0.35             # gol sesi duyulsun diye muzik geri cekilir
     mix *= sc[:, None]
+    gercek = gol_sesi_yukle(ses_dosyasi, ses_sn) if ses_dosyasi else None
     for g in goller_sn:
         r, d = riser(1.6, rng), darbe(rng)
         k = kalabalik(rng) if gol_sesi else None
+        if gercek is not None:
+            i0 = int(g * SR)
+            m = min(len(gercek), len(mix) - i0)
+            mix[i0:i0 + m] += gercek[:m] * 4.0              # muzik yatagi geri cekildigi icin net duyulur
         for ch in (0, 1):
             if yukselis:                                   # "viss" sesi: varsayilan kapali
                 _ekle(mix[:, ch], r, max(g - 1.6, 0), 0.55)
-            _ekle(mix[:, ch], d, g, 0.75)
+            _ekle(mix[:, ch], d, g, 0.45 if gercek is not None else 0.75)
             if k is not None:
                 _ekle(mix[:, ch], k, g + 0.05, 3.4)
     mix = mix[:n]
@@ -394,14 +412,14 @@ def _lufs(yol):
     return float(re.findall(r"I:\s+(-?\d+\.\d+) LUFS", r.stderr)[-1])
 
 
-def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None, lufs=-22):
+def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None, lufs=-22, gol_ses=None, gol_ses_sn=2.5):
     video = Path(video)
     sure = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                           "-of", "default=nw=1:nk=1", str(video)]).decode().strip())
     goller_sn = [g / dk_sn for g in goller_dk]
     wav = video.with_suffix(".muzik.wav")
     if stil == "harici":
-        mix = uret_harici(dosya, sure, goller_sn, wav)
+        mix = uret_harici(dosya, sure, goller_sn, wav, ses_dosyasi=gol_ses, ses_sn=gol_ses_sn)
     else:
         mix = (uret_celestial if stil == "celestial" else uret)(sure, goller_sn, wav)
     cikis = video.with_name(video.stem + f"_muzikli_{stil}.mp4")
@@ -424,4 +442,6 @@ if __name__ == "__main__":
     stil = a[a.index("--stil") + 1] if "--stil" in a else "rekabet"
     dosya = a[a.index("--dosya") + 1] if "--dosya" in a else None
     lufs = float(a[a.index("--lufs") + 1]) if "--lufs" in a else -22
-    print(videoya_ekle(a[0], goller, dk_sn, stil, dosya, lufs))
+    gol_ses = a[a.index("--gol-ses") + 1] if "--gol-ses" in a else None
+    gol_ses_sn = float(a[a.index("--gol-ses-sn") + 1]) if "--gol-ses-sn" in a else 2.5
+    print(videoya_ekle(a[0], goller, dk_sn, stil, dosya, lufs, gol_ses, gol_ses_sn))
