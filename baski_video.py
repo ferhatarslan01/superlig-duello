@@ -389,9 +389,6 @@ class Sahne:
         d.text((W - 48 - d.textlength(devre, font=_f(34, False)), 176), devre, font=_f(34, False), fill=GRI)
         ust = f"SÜPER LİG · {v['tarih'][8:]}.{v['tarih'][5:7]}"
         d.text((W - 48 - d.textlength(ust, font=_f(30, False)), 218), ust, font=_f(30, False), fill=SOLUK)
-        not_ = ("Baskı: dakikalık momentum verisi (PitchAPI)" if v.get("kaynak") == "pitchapi"
-                else "Baskı: model tahmini (yarı bazlı gerçek veriden)")
-        d.text((W - 48 - d.textlength(not_, font=_f(22, False)), 262), not_, font=_f(22, False), fill=(130, 138, 160))
         # alt: baski grafigi
         self._grafik(d, dakika)
         # gol bildirimi
@@ -437,7 +434,28 @@ class Sahne:
                 d.rectangle([X(kt["t"]) - 3, y1 + 8, X(kt["t"]) + 3, y1 + 22],
                             fill=SARI if "yellow" in kt["kart"] else KIRMIZI)
         d.line([X(dakika), y0 - 8, X(dakika), y1 + 8], fill=BEYAZ + (230,), width=2)
-        d.text((W / 2 - d.textlength("@StatDuel", font=_f(40)) / 2, 1022), "@StatDuel", font=_f(40), fill=BEYAZ)
+        f40 = _f(40)
+        tw = d.textlength("@StatDuel", font=f40)
+        ik, bos = 40, 14                       # ikon boyu, aralik
+        x = W / 2 - (tw + 2 * (ik + bos)) / 2
+        _kus(d, x, 1024, ik)
+        _x_logo(d, x + ik + bos, 1024, ik)
+        d.text((x + 2 * (ik + bos), 1022), "@StatDuel", font=f40, fill=BEYAZ)
+
+
+def _x_logo(d, x, y, k, renk=(255, 255, 255)):
+    """X (eski Twitter) simgesi: iki capraz cizgi, biri kalin."""
+    d.line([x + 0.08 * k, y + 0.06 * k, x + 0.92 * k, y + 0.94 * k], fill=renk, width=max(3, int(k * 0.15)))
+    d.line([x + 0.92 * k, y + 0.06 * k, x + 0.08 * k, y + 0.94 * k], fill=renk, width=max(2, int(k * 0.07)))
+
+
+def _kus(d, x, y, k, renk=(255, 255, 255)):
+    """Twitter kusu (sade cokgen)."""
+    p = [(0.00, 0.78), (0.14, 0.76), (0.26, 0.70), (0.12, 0.62), (0.04, 0.50), (0.10, 0.50), (0.04, 0.40),
+         (0.00, 0.26), (0.08, 0.28), (0.22, 0.38), (0.34, 0.45), (0.46, 0.16), (0.60, 0.08), (0.74, 0.14),
+         (0.82, 0.22), (0.96, 0.15), (0.90, 0.28), (1.00, 0.28), (0.88, 0.38), (0.84, 0.58), (0.74, 0.76),
+         (0.58, 0.88), (0.38, 0.92), (0.18, 0.88)]
+    d.polygon([(x + a * k, y + 0.06 * k + b * k * 0.9) for a, b in p], fill=renk)
 
 
 def _kisa(ad):
