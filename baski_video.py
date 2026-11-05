@@ -438,7 +438,7 @@ class Sahne:
         tw = d.textlength("@StatDuel", font=f40)
         ik, bos = 40, 14                       # ikon boyu, aralik
         x = W / 2 - (tw + 2 * (ik + bos)) / 2
-        _kus(d, x, 1024, ik)
+        _tiktok(d, x, 1024, ik)
         _x_logo(d, x + ik + bos, 1024, ik)
         d.text((x + 2 * (ik + bos), 1022), "@StatDuel", font=f40, fill=BEYAZ)
 
@@ -449,13 +449,21 @@ def _x_logo(d, x, y, k, renk=(255, 255, 255)):
     d.line([x + 0.92 * k, y + 0.06 * k, x + 0.08 * k, y + 0.94 * k], fill=renk, width=max(2, int(k * 0.07)))
 
 
-def _kus(d, x, y, k, renk=(255, 255, 255)):
-    """Twitter kusu (sade cokgen)."""
-    p = [(0.00, 0.78), (0.14, 0.76), (0.26, 0.70), (0.12, 0.62), (0.04, 0.50), (0.10, 0.50), (0.04, 0.40),
-         (0.00, 0.26), (0.08, 0.28), (0.22, 0.38), (0.34, 0.45), (0.46, 0.16), (0.60, 0.08), (0.74, 0.14),
-         (0.82, 0.22), (0.96, 0.15), (0.90, 0.28), (1.00, 0.28), (0.88, 0.38), (0.84, 0.58), (0.74, 0.76),
-         (0.58, 0.88), (0.38, 0.92), (0.18, 0.88)]
-    d.polygon([(x + a * k, y + 0.06 * k + b * k * 0.9) for a, b in p], fill=renk)
+def _tiktok(d, x, y, k):
+    """TikTok notasi: beyaz nota + hafif camgobegi/kirmizi golge."""
+    w = max(3, int(k * 0.15))
+
+    def nota(ox, oy, renk):
+        sx = x + 0.56 * k + ox
+        d.line([sx, y + 0.04 * k + oy, sx, y + 0.70 * k + oy], fill=renk, width=w)          # sap
+        cx, cy, r = x + 0.38 * k + ox, y + 0.74 * k + oy, 0.20 * k
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=renk, width=w)                  # nota basi
+        d.arc([sx - 0.30 * k, y + 0.04 * k + oy, sx + 0.34 * k, y + 0.50 * k + oy], 270, 360,
+              fill=renk, width=w)                                                           # bayrak
+        d.line([sx + 0.32 * k, y + 0.27 * k + oy, sx + 0.38 * k, y + 0.27 * k + oy], fill=renk, width=w)
+    nota(-0.05 * k, 0.04 * k, (37, 244, 238, 255))
+    nota(0.05 * k, -0.04 * k, (254, 44, 85, 255))
+    nota(0, 0, (255, 255, 255, 255))
 
 
 def _kisa(ad):
