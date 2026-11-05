@@ -323,7 +323,7 @@ def kalabalik(rng, sure=3.6):
     return ses / max(np.abs(ses).max(), 1e-9) * 0.9
 
 
-def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False):
+def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False, ses_dosyasi=None):
     x = _wav_oku(dosya)
     bpm = bpm_bul(x)
     ilk = ilk_vurus(x)
@@ -367,7 +367,8 @@ def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False):
         r, d = riser(1.6, rng), darbe(rng)
         k = kalabalik(rng) if gol_sesi else None
         for ch in (0, 1):
-            _ekle(mix[:, ch], r, max(g - 1.6, 0), 0.55)
+            if yukselis:                                   # "viss" sesi: varsayilan kapali
+                _ekle(mix[:, ch], r, max(g - 1.6, 0), 0.55)
             _ekle(mix[:, ch], d, g, 0.75)
             if k is not None:
                 _ekle(mix[:, ch], k, g + 0.05, 3.4)
