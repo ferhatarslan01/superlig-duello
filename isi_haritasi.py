@@ -1,22 +1,22 @@
-"""Oyuncu isi haritasi karti (GERCEK veri): PitchAPI /v1/matches/{id}/heatmaps (16x12 izgara, maç toplami).
+"""Oyuncu isi haritasi karti ve videosu (GERCEK veri): PitchAPI /v1/matches/{id}/heatmaps (16x12 izgara).
 
-Isi haritasi dakika dakika degil, maç toplamidir; kart bunu acikca belirtir. Atak yonu hep saga dogrudur.
-Oyuncunun sutlari (varsa) dakikalariyla uzerine eklenir.
+Isi haritasi dakika dakika degil, maç toplamidir; kart ve video bunu acikca belirtir. Atak yonu hep saga dogrudur.
+Videoda isi SABIT durur; saat akar, oyuncunun sutlari ve macin golleri gercek dakikalarinda belirir.
 
 Kullanim:
-  python isi_haritasi.py --tarih 2026-11-01 --takim "Real Madrid" --oyuncu "Arda Güler"
+  python isi_haritasi.py --tarih 2026-11-01 --takim "Real Madrid" --oyuncu "Arda Güler" [--video]
 Ortam: PITCHAPI_API_KEY
 """
 import math
+import subprocess
 import sys
-from datetime import date, timedelta
 
 import numpy as np
 from PIL import Image, ImageDraw
 
 import fotograf
-from baski_video import ARKA, BEYAZ, GRI, KIRMIZI, OUT, SOLUK, W, H, _f, _pitch, _tiktok, _x_logo
-from sut_video import CIM, PH, PW, PX, PY, _px, saha_arka
+from baski_video import (ARKA, BEYAZ, FPS, GRI, KIRMIZI, MAVI, OUT, SOLUK, W, H, _f, _pitch, _tiktok, _x_logo)
+from sut_video import PH, PW, PX, PY, _px, saha_arka
 
 SS = 2
 DURAKLAR = [(0.00, (0, 0, 0, 0)), (0.12, (36, 52, 190, 90)), (0.35, (120, 40, 200, 170)),
@@ -33,7 +33,7 @@ def _renk(v):
 
 
 def isi_matrisi(cells, grid_l=16, grid_w=12, cozunurluk=2.0, sigma_m=5.5):
-    """Seyrek [cx, cy, adet] uclulari -> pürüzsüz isi (0..1), boyut (68*c, 105*c)."""
+    """Seyrek [cx, cy, adet] uclulari -> puruzsuz isi (0..1), boyut (68*c, 105*c)."""
     nx, ny = int(105 * cozunurluk), int(68 * cozunurluk)
     a = np.zeros((ny, nx))
     for cx, cy, n in cells:
@@ -50,7 +50,7 @@ def isi_matrisi(cells, grid_l=16, grid_w=12, cozunurluk=2.0, sigma_m=5.5):
 
 
 def veri(tarih, takim, oyuncu):
-    """Mac + oyuncunun isi hucreleri, sutlari, oynadigi sure."""
+    """Mac + oyuncunun isi hucreleri, sutlari, oynadigi sure, macin golleri."""
     gun = _pitch(f"/v1/date/{tarih}")
     m = next((x for x in (gun["matches"] if isinstance(gun, dict) else gun)
               if takim.lower() in (x["home_team"]["name"] + " " + x["away_team"]["name"]).lower()), None)
@@ -70,28 +70,29 @@ def veri(tarih, takim, oyuncu):
                     sutlar.append(s)
     except Exception:
         pass
-    ev_mi = p["side"] == "home"
     ol = _pitch(f"/v1/matches/{mid}/events")["events"]
     cikis = next((e["minute"] for e in ol if e["event_type"].lower() == "substitution"
                   and e["player"]["id"] == pid), None)
     giris = next((e["minute"] for e in ol if e["event_type"].lower() == "substitution"
                   and (e.get("sub_in_player") or {}).get("id") == pid), 0)
-    return {"mac": m, "oyuncu": p["player"]["name"], "takim": p["team"]["name"], "ev": ev_mi,
-            "aksiyon": p["actions"], "cells": p["cells"], "sutlar": sutlar,
+    ev_id = m["home_team"]["id"]
+    goller = [{"t": e["minute"] + 0.4 * (e.get("minute_added") or 0), "dk": e["minute"],
+               "ev": e["team_id"] == ev_id, "oyuncu": e["player"]["name"]}
+              for e in ol if e["event_type"].lower() == "goal"]
+    goller.sort(key=lambda g: g["t"])
+    return {"goller": goller, "mac": m, "oyuncu": p["player"]["name"], "takim": p["team"]["name"],
+            "ev": p["side"] == "home", "aksiyon": p["actions"], "cells": p["cells"], "sutlar": sutlar,
             "dk": (cikis or 90) - giris, "giris": giris, "cikis": cikis}
 
 
-def kart(v, yol):
+def taban(v):
+    """Sutsuz, dinamik yazisiz zemin: saha + isi + ust baslik (foto, isim). RGB 1080x1080."""
     k = SS
     im = saha_arka()
     mat = isi_matrisi(v["cells"])
     rgba = Image.fromarray(_renk(np.clip(mat ** 0.8, 0, 1)), "RGBA")
     rgba = rgba.resize((int(PW * k), int(PH * k)), Image.BICUBIC)
     im.alpha_composite(rgba, (int(PX * k), int(PY * k)))
-    # saha cizgilerini isinin ustunden bir kez daha ince ciz (okunurluk)
-    cizgi = saha_arka()
-    maske = Image.new("L", im.size, 0)
-    ImageDraw.Draw(maske).rectangle([0, 0, *im.size], fill=0)
     d = ImageDraw.Draw(im)
     renk = (255, 255, 255, 120)
     g = max(2, int(2 * k))
@@ -102,34 +103,17 @@ def kart(v, yol):
     cz([(52.5, 0), (52.5, 68)])
     cz([(52.5 + 9.15 * math.cos(a), 34 + 9.15 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 60)])
     for sol in (True, False):
-        s = (lambda t: t) if sol else (lambda t: 105 - t)
-        cz([(s(0), 13.84), (s(16.5), 13.84), (s(16.5), 54.16), (s(0), 54.16)])
-        cz([(s(0), 24.84), (s(5.5), 24.84), (s(5.5), 43.16), (s(0), 43.16)])
-    # sutlar
-    for s in v["sutlar"]:
-        cx, cy = _px(s["x"], s["y"], k)
-        r = (8 + 36 * math.sqrt(max(s["expected_goals"] or 0, 0))) * k
-        gol = s["event_type"] == "Goal"
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 255, 255, 235) if gol else (10, 12, 20, 170),
-                  outline=(255, 255, 255, 255), width=int(3 * k))
-        t = f"{s['minute']}'"
-        f = _f(24 * k)
-        d.text((cx - d.textlength(t, font=f) / 2, cy + r + 2 * k), t, font=f, fill=(255, 255, 255, 255))
+        s_ = (lambda t: t) if sol else (lambda t: 105 - t)
+        cz([(s_(0), 13.84), (s_(16.5), 13.84), (s_(16.5), 54.16), (s_(0), 54.16)])
+        cz([(s_(0), 24.84), (s_(5.5), 24.84), (s_(5.5), 43.16), (s_(0), 43.16)])
     im = im.resize((W, H), Image.LANCZOS).convert("RGB")
-    d = ImageDraw.Draw(im, "RGBA")
-    # ust: foto, isim, mac
     foto, _ = fotograf.foto_al(v["oyuncu"], v["takim"])
     fotograf.daire_yapistir(im, foto, 48, 44, 170, renk=KIRMIZI)
     d = ImageDraw.Draw(im, "RGBA")
-    d.text((246, 48), v["oyuncu"].upper(), font=_f(84), fill=BEYAZ)
+    d.text((246, 48), v["oyuncu"].upper(), font=_f(78), fill=BEYAZ)
     m = v["mac"]
-    skor = f"{m['home_team']['name']} {m['score_home']}-{m['score_away']} {m['away_team']['name']}"
-    d.text((248, 142), skor, font=_f(40, False), fill=GRI)
-    sure = f"{v['dk']} dk oynadı" + (f"  ·  {v['cikis']}' çıktı" if v["cikis"] else "")
-    d.text((248, 192), sure, font=_f(34, False), fill=SOLUK)
     tarih = m.get("date") or m["time_utc"][:10]
     d.text((248, 238), f"{tarih[8:]}.{tarih[5:7]}.{tarih[:4]}  ·  {m['league']['name']}", font=_f(30, False), fill=SOLUK)
-    # gosterge
     d.text((PX + 14, PY + 12), "ATAK YÖNÜ", font=_f(26), fill=(255, 255, 255, 190))
     ax = PX + 14 + d.textlength("ATAK YÖNÜ", font=_f(26)) + 12
     d.line([ax, PY + 28, ax + 34, PY + 28], fill=(255, 255, 255, 190), width=4)
@@ -142,7 +126,6 @@ def kart(v, yol):
     d.text((bx + bw - d.textlength("çok", font=_f(24, False)), by + 18), "çok", font=_f(24, False), fill=GRI)
     d.text((PX + 14, PY + PH - 36), f"Isı haritası: maç toplamı, {v['aksiyon']} aksiyon (dakika dakika değil)",
            font=_f(24, False), fill=(255, 255, 255, 150))
-    # alt: hesap
     f40 = _f(40)
     tw = d.textlength("@StatDuel", font=f40)
     ik, bos = 40, 14
@@ -150,8 +133,99 @@ def kart(v, yol):
     _tiktok(d, x, 1024, ik)
     _x_logo(d, x + ik + bos, 1024, ik)
     d.text((x + 2 * (ik + bos), 1022), "@StatDuel", font=f40, fill=BEYAZ)
+    return im
+
+
+def _sutlari_ciz(im, v, dakika, saniye, hepsi=False):
+    """Sutlari 2x ust ornekleme ile cizer; hepsi=True ise hepsi sabit, degilse dakikasinda animasyonlu belirir."""
+    k = SS
+    ov = Image.new("RGBA", (W * k, H * k), (0, 0, 0, 0))
+    d = ImageDraw.Draw(ov)
+    for s in v["sutlar"]:
+        t = s["minute"] + 0.4 * (s.get("minute_added") or 0)
+        if not hepsi and t > dakika:
+            continue
+        gecen = 9.0 if hepsi else (dakika - t) * saniye
+        cx, cy = _px(s["x"], s["y"], k)
+        r = (8 + 36 * math.sqrt(max(s["expected_goals"] or 0, 0))) * k
+        r *= 0.55 + 0.45 * (1 - (1 - min(1.0, gecen / 0.25)) ** 3)
+        gol = s["event_type"] == "Goal"
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 255, 255, 235) if gol else (10, 12, 20, 170),
+                  outline=(255, 255, 255, 255), width=int(3 * k))
+        f = _f(24 * k)
+        etiket = f"{s['minute']}'"
+        d.text((cx - d.textlength(etiket, font=f) / 2, cy + r + 2 * k), etiket, font=f, fill=(255, 255, 255, 255))
+        if gecen < 0.9:
+            p = gecen / 0.9
+            rr = r * (1 + 1.8 * p)
+            d.ellipse([cx - rr, cy - rr, cx + rr, cy + rr], outline=(255, 255, 255, int(220 * (1 - p))),
+                      width=int(3 * k))
+    ov = ov.resize((W, H), Image.LANCZOS)
+    im.paste(ov, (0, 0), ov)
+    return im
+
+
+def _skor_metni(v, dakika):
+    m = v["mac"]
+    sh = sum(1 for g in v["goller"] if g["t"] <= dakika and g["ev"])
+    sa = sum(1 for g in v["goller"] if g["t"] <= dakika and not g["ev"])
+    return f"{m['home_team']['name']} {sh}-{sa} {m['away_team']['name']}"
+
+
+def kart(v, yol):
+    im = taban(v)
+    _sutlari_ciz(im, v, None, 1, hepsi=True)
+    d = ImageDraw.Draw(im, "RGBA")
+    m = v["mac"]
+    d.text((248, 142), f"{m['home_team']['name']} {m['score_home']}-{m['score_away']} {m['away_team']['name']}",
+           font=_f(40, False), fill=GRI)
+    sure = f"{v['dk']} dk oynadı" + (f"  ·  {v['cikis']}' çıktı" if v["cikis"] else "")
+    d.text((248, 192), sure, font=_f(34, False), fill=SOLUK)
     OUT.mkdir(exist_ok=True)
     im.save(yol)
+    return yol
+
+
+def video_kare(taban_im, v, dakika, saniye):
+    """Isi sabit; saat akar, sutlar ve goller gercek dakikalarinda belirir."""
+    im = taban_im.copy()
+    _sutlari_ciz(im, v, dakika, saniye)
+    d = ImageDraw.Draw(im, "RGBA")
+    d.text((248, 142), _skor_metni(v, dakika), font=_f(40, False), fill=GRI)
+    oyunda = dakika < (v["cikis"] or 999)
+    durum = f"{v['dk']} dk oynadı" if not v["cikis"] else ("Oyunda" if oyunda else f"{v['cikis']}' çıktı")
+    d.text((248, 192), durum, font=_f(34, False), fill=(120, 230, 150) if oyunda else SOLUK)
+    gosterim = f"{min(max(int(dakika), 1), 90)}'" if dakika <= 90 else f"90+{int(dakika - 90) + 1}'"
+    d.text((W - 48 - d.textlength(gosterim, font=_f(120)), 36), gosterim, font=_f(120), fill=BEYAZ)
+    for g in v["goller"]:
+        gs = (dakika - g["t"]) * saniye
+        if 0 <= gs <= 2.6:
+            a = int(255 * min(1, (2.6 - gs) / 0.6))
+            renk = KIRMIZI if g["ev"] == v["ev"] else MAVI
+            d.rounded_rectangle([W / 2 - 300, 610, W / 2 + 300, 720], 24, fill=(14, 17, 26, int(a * 0.92)),
+                                outline=renk + (a,), width=4)
+            t = f"GOL  {g['dk']}'  {g['oyuncu'].split()[-1]}"
+            d.text((W / 2 - d.textlength(t, font=_f(64)) / 2, 630), t, font=_f(64), fill=(255, 255, 255, a))
+    return im
+
+
+def video(v, dk_sn=2.2):
+    tb = taban(v)
+    t2 = 90.0
+    toplam = int((t2 / dk_sn + 3.0) * FPS)
+    ad = "".join(c for c in v["oyuncu"].lower() if c.isalnum())
+    yol = OUT / f"isi_{ad}.mp4"
+    OUT.mkdir(exist_ok=True)
+    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
+                           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
+                           "-preset", "medium", str(yol)], stdin=subprocess.PIPE)
+    for n in range(toplam):
+        dakika = min(n / FPS * dk_sn, t2)
+        ff.stdin.write(video_kare(tb, v, dakika, 1 / dk_sn).tobytes())
+        if n % 120 == 0:
+            print(f"kare {n}/{toplam}", flush=True)
+    ff.stdin.close()
+    ff.wait()
     return yol
 
 
@@ -163,8 +237,13 @@ def main():
         raise SystemExit(__doc__)
     v = veri(tarih, takim, oyuncu)
     ad = "".join(c for c in v["oyuncu"].lower() if c.isalnum())
-    print(v["oyuncu"], v["takim"], "| aksiyon", v["aksiyon"], "| sut", len(v["sutlar"]), "| dk", v["dk"])
-    print(kart(v, OUT / f"isi_{ad}.png"))
+    print(v["oyuncu"], v["takim"], "| aksiyon", v["aksiyon"], "| sut", len(v["sutlar"]), "| dk", v["dk"],
+          "| goller", [(g["dk"], g["oyuncu"]) for g in v["goller"]])
+    if "--video" in a:
+        print(video(v))
+        print("GOLLER_DK:", ",".join(str(g["t"]) for g in v["goller"]))
+    else:
+        print(kart(v, OUT / f"isi_{ad}.png"))
 
 
 if __name__ == "__main__":
