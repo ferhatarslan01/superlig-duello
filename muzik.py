@@ -323,7 +323,7 @@ def kalabalik(rng, sure=3.6):
     return ses / max(np.abs(ses).max(), 1e-9) * 0.9
 
 
-def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=True):
+def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False):
     x = _wav_oku(dosya)
     bpm = bpm_bul(x)
     ilk = ilk_vurus(x)
@@ -360,7 +360,8 @@ def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=True):
         a, b = int((g - 0.06) * SR), int((g + 0.45) * SR)
         sc[max(a, 0):b] *= 0.40
         sc[int(max(g - 0.25, 0) * SR):max(a, 0)] *= 0.65
-        sc[b:int((g + 2.6) * SR)] *= 0.55                 # kalabalik duyulsun diye muzik hafif geri cekilir
+        if gol_sesi:
+            sc[b:int((g + 2.6) * SR)] *= 0.55             # kalabalik duyulsun diye muzik hafif geri cekilir
     mix *= sc[:, None]
     for g in goller_sn:
         r, d = riser(1.6, rng), darbe(rng)
