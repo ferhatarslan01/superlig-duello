@@ -24,7 +24,8 @@
   "hafta": "2026-W45",
   "gonderilen": [
    "champions:asist",
-   "champions:gol"
+   "champions:gol",
+   "champions:kart"
   ]
  },
  "oncesi": {
@@ -278,5 +279,5 @@
    "kart"
   ]
  },
- "avrupa_son": "2026-11-05T15:33:30.243389+00:00"
+ "avrupa_son": "2026-11-05T16:08:59.338546+00:00"
 }
