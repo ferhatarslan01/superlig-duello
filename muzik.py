@@ -5,7 +5,7 @@ yukselen gerilim (riser) + dusuk darbe (impact) + kisa ses cekilmesi (sidechain)
 
 Kullanim:
   python muzik.py out/baski_334a7356.mp4 --goller 29,44,62 --dk-sn 2.2      # <video>_muzikli.mp4
-(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi; --stil rekabet|celestial|harici --dosya <wav>)
+(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi; --stil rekabet|celestial|harici --dosya <wav> --lufs -22)
 """
 import subprocess
 import sys
@@ -344,8 +344,8 @@ def uret_harici(dosya, sure, goller_sn, yol_wav):
     for g in goller_sn:
         r, d = riser(1.6, rng), darbe(rng)
         for ch in (0, 1):
-            _ekle(mix[:, ch], r, max(g - 1.6, 0), 0.8)
-            _ekle(mix[:, ch], d, g, 1.1)
+            _ekle(mix[:, ch], r, max(g - 1.6, 0), 0.55)
+            _ekle(mix[:, ch], d, g, 0.75)
     mix = mix[:n]
     son = int(2.0 * SR)
     mix[-son:] *= (np.linspace(1, 0, son) ** 1.5)[:, None]
@@ -360,7 +360,7 @@ def uret_harici(dosya, sure, goller_sn, yol_wav):
     return mix[:, 0]
 
 
-def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None):
+def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None, lufs=-22):
     video = Path(video)
     sure = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                           "-of", "default=nw=1:nk=1", str(video)]).decode().strip())
@@ -372,7 +372,7 @@ def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None):
         mix = (uret_celestial if stil == "celestial" else uret)(sure, goller_sn, wav)
     cikis = video.with_name(video.stem + f"_muzikli_{stil}.mp4")
     subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(wav),
-                           "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=9", "-c:a", "aac", "-b:a", "192k",
+                           "-c:v", "copy", "-af", f"loudnorm=I={lufs}:TP=-3:LRA=7", "-c:a", "aac", "-b:a", "192k",
                            "-shortest", str(cikis)])
     print(f"tepe: {20 * np.log10(np.abs(mix).max()):.1f} dBFS | rms: {20 * np.log10(np.sqrt((mix ** 2).mean())):.1f} dBFS")
     return cikis
@@ -386,4 +386,5 @@ if __name__ == "__main__":
     dk_sn = float(a[a.index("--dk-sn") + 1]) if "--dk-sn" in a else 2.2
     stil = a[a.index("--stil") + 1] if "--stil" in a else "rekabet"
     dosya = a[a.index("--dosya") + 1] if "--dosya" in a else None
-    print(videoya_ekle(a[0], goller, dk_sn, stil, dosya))
+    lufs = float(a[a.index("--lufs") + 1]) if "--lufs" in a else -22
+    print(videoya_ekle(a[0], goller, dk_sn, stil, dosya, lufs))
