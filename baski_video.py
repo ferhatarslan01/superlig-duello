@@ -260,25 +260,27 @@ class Sahne:
         self.sira = [(i, j) for _, i, j in hucre]
 
     def _alan(self, dakika):
-        """(Z, w): yuzey yuksekligi ve ev takimi agirligi (0..1) -- izgara boyutunda."""
-        i = min(int(dakika / 0.25), len(self.t) - 1)
-        ph, pa = self.pe[i], self.pd[i]
-        toplam = ph + pa + 1e-9
-        dom_h, dom_a = ph / toplam, pa / toplam
-        xh = 0.52 + 0.38 * dom_h              # ev: sagdaki kaleye dogru
-        xa = 0.48 - 0.38 * dom_a              # dep: soldaki kaleye dogru
-        yh = 0.5 + 0.30 * math.sin(2 * math.pi * dakika / 9.0 + self.faz[0])
-        ya = 0.5 + 0.30 * math.sin(2 * math.pi * dakika / 11.0 + self.faz[1])
-        X, Y = self.X, self.Y
+        """(Z, w): yuzey yuksekligi ve ev takimi agirligi (0..1).
 
-        def tepe(x0, y0, genlik, sx=0.17, sy=0.30):
-            prof = 0.30 + 0.70 * np.exp(-((Y - y0) / sy) ** 2)
-            return genlik * prof * np.exp(-((X - x0) / sx) ** 2)
-        Hh = tepe(xh, yh, 12.0 * ph / self.pmax) + 0.5 * tepe(xh - 0.18, 1 - yh, 8.5 * ph / self.pmax, 0.14, 0.22)
-        Ha = tepe(xa, ya, 12.0 * pa / self.pmax) + 0.5 * tepe(xa + 0.18, 1 - ya, 8.5 * pa / self.pmax, 0.14, 0.22)
-        Z = Hh + Ha
-        w = Hh / (Hh + Ha + 1e-6)
-        return Z, w
+        Tek bir 'mucadele hatti': ustte ilk yazilan takim (ev) solda, ikinci takim (dep) sagda.
+        Ev takiminin momentumu yukseldikce hat saga kayar, kirmizi bolge buyur ve yukselir; mavi
+        kuculur ve alcalir. Deplasman ustunse tersi."""
+        i = min(int(dakika / 0.25), len(self.t) - 1)
+        pa, pb = self.pe[i], self.pd[i]
+        m = (pa - pb) / (pa + pb + 1e-9)                  # -1 (dep ustun) .. +1 (ev ustun)
+        xf = 0.5 + 0.30 * m                               # cephe hatti
+        X, Y = self.X, self.Y
+        wA = 1.0 / (1.0 + np.exp((X - xf) / 0.030))      # 1: ev rengi (sol), 0: dep rengi (sag)
+        yA = 0.5 + 0.28 * math.sin(2 * math.pi * dakika / 9.0 + self.faz[0])
+        yB = 0.5 + 0.28 * math.sin(2 * math.pi * dakika / 11.0 + self.faz[1])
+
+        def prof(y0):
+            return 0.55 + 0.45 * np.exp(-((Y - y0) / 0.28) ** 2)
+        yakin = np.exp(-((X - xf) / 0.26) ** 2)           # hatta yakin yuksek, kendi kalesine dogru alcalir
+        hA = (1.0 + 12.0 * pa / self.pmax) * (0.18 + 0.82 * yakin) * prof(yA)
+        hB = (1.0 + 12.0 * pb / self.pmax) * (0.18 + 0.82 * yakin) * prof(yB)
+        Z = wA * hA + (1 - wA) * hB
+        return Z, wA
 
     def flas(self, dakika, saniye):
         """Gol aninda 0..1 arasi kisa isik (0.5 sn)."""
@@ -312,9 +314,9 @@ class Sahne:
         dep_r = mav[None, None] * (1 - zn[..., None]) + sog[None, None] * zn[..., None] ** 1.4
         renk = ev_r * w[..., None] + dep_r * (1 - w[..., None])
         dzx = np.gradient(Z, axis=0)
-        golge = np.clip(0.80 - 2.2 * dzx, 0.50, 1.25)
+        golge = np.clip(1.00 - 2.2 * dzx, 0.62, 1.35)
         renk = np.clip(renk * golge[..., None], 0, 255)
-        taban = 0.20 + 0.80 * np.clip(Z / 1.2, 0, 1)
+        taban = 0.55 + 0.45 * np.clip(Z / 1.2, 0, 1)
         renk = renk * taban[..., None] + np.array(ARKA, float) * (1 - taban[..., None])
         # gol flasi: yuzeye beyaz isik
         if flas > 0:
