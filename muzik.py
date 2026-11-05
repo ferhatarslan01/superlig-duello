@@ -5,7 +5,7 @@ yukselen gerilim (riser) + dusuk darbe (impact) + kisa ses cekilmesi (sidechain)
 
 Kullanim:
   python muzik.py out/baski_334a7356.mp4 --goller 29,44,62 --dk-sn 2.2      # <video>_muzikli.mp4
-(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi)
+(--goller: mac dakikalari; --dk-sn: videoda saniye basina mac dakikasi; --stil rekabet|celestial)
 """
 import subprocess
 import sys
@@ -151,14 +151,126 @@ def uret(sure, goller_sn, yol_wav):
     return mix
 
 
-def videoya_ekle(video, goller_dk, dk_sn=2.2):
+# ---------------- "celestial phonk" stili ----------------
+def _yanki(x, sure=1.8, agirlik=0.38):
+    """Basit yapay yanki (reverb): sonlu, ussel sonen gurultu darbe yaniti, FFT ile."""
+    rng = np.random.default_rng(3)
+    n = int(sure * SR)
+    t = np.arange(n) / SR
+    ir = rng.normal(0, 1, n) * np.exp(-t * 3.0)
+    ir = _alcak_geciren(ir, 5500)
+    ir /= np.abs(ir).max()
+    uz = len(x) + n
+    y = np.fft.irfft(np.fft.rfft(x, uz) * np.fft.rfft(ir, uz), uz)[:len(x)]
+    y *= np.abs(x).max() / max(np.abs(y).max(), 1e-9)
+    return x * (1 - agirlik) + y * agirlik * 1.6
+
+
+def _808(f0, uzun, rng):
+    t = np.arange(int(uzun * SR)) / SR
+    f = f0 * (1 + 1.6 * np.exp(-t * 35))                      # girisinde pes dusen kayma
+    ses = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 2.6)
+    return np.tanh(ses * 3.2) * 0.85                          # bozulma (phonk karakteri)
+
+
+def _inek_zili(f, rng):
+    t = np.arange(int(0.22 * SR)) / SR
+    ses = np.sign(np.sin(2 * np.pi * f * t)) + 0.8 * np.sign(np.sin(2 * np.pi * f * 1.504 * t))
+    ses = _yuksek_geciren(_alcak_geciren(ses, 4200), 380)
+    return ses * np.exp(-t * 22) * 0.22
+
+
+def _can(f, uzun=1.4):
+    t = np.arange(int(uzun * SR)) / SR
+    ses = sum(a * np.sin(2 * np.pi * f * k * t) * np.exp(-t * d)
+              for k, a, d in ((1, 1.0, 2.2), (2.76, 0.45, 3.4), (5.4, 0.22, 5.0), (8.9, 0.10, 8.0)))
+    return ses * 0.22
+
+
+def _pad(frekanslar, sure):
+    t = np.arange(int(sure * SR)) / SR
+    ses = np.zeros_like(t)
+    for f in frekanslar:
+        for det in (-0.004, 0.0, 0.004):
+            ses += np.sin(2 * np.pi * f * (1 + det) * t + np.random.default_rng(int(f)).uniform(0, 6.28))
+    ses *= 0.5 + 0.5 * np.sin(2 * np.pi * 0.22 * t - 1.2)       # yavas dalgalanma
+    zarf = np.minimum(t / 0.6, 1.0)
+    return ses / len(frekanslar) / 3 * zarf * 0.95
+
+
+def uret_celestial(sure, goller_sn, yol_wav):
+    rng = np.random.default_rng(11)
+    bpm = 130
+    adim = 60.0 / bpm / 4
+    mix = _bos(sure)
+    gokyuzu = _bos(sure)        # yanki gonderilen kisim (pad + canlar)
+    tum = int(sure / adim) + 2
+    notalar_808 = {0: 43.65, 3: 43.65, 6: 51.91, 10: 38.89, 13: 43.65}          # F1 F1 Ab1 Eb1 F1
+    can_dizisi = [698.5, 830.6, 1046.5, 1244.5, 1046.5, 830.6, 784.0, 830.6]    # F5 Ab5 C6 Eb6 ...
+    zil = {0: 0, 2: 1, 3: 0, 6: 1, 8: 0, 10: 1, 11: 0, 14: 1}                   # inek zili ritmi
+    akor = [174.6, 207.7, 261.6, 311.1, 392.0]                                    # Fm9
+    _ekle(gokyuzu, _pad(akor, sure + 1), 0.0, 1.0)
+    pad_oktav = _pad([f * 2 for f in akor[:3]], sure + 1)
+    _ekle(gokyuzu, pad_oktav, 0.0, 0.45)
+    kick_ses = kick()
+    for n in range(tum):
+        t0 = n * adim
+        if t0 >= sure:
+            break
+        bar, k = divmod(n, 16)
+        davul = t0 >= 1.85                                             # ilk barda sadece goksel katman
+        if k % 2 == 0:
+            _ekle(gokyuzu, _can(can_dizisi[(n // 2) % len(can_dizisi)]), t0, 1.0 if k % 4 == 0 else 0.6)
+        if not davul:
+            continue
+        if k in (0, 3, 6, 10, 13):
+            _ekle(mix, kick_ses, t0, 1.0)
+        if k in notalar_808:
+            _ekle(mix, _808(notalar_808[k], 0.36, rng), t0, 0.55)
+        if k in (4, 12):
+            _ekle(mix, klap(rng), t0, 0.6)
+        if k in zil:
+            _ekle(mix, _inek_zili(540.0 if zil[k] == 0 else 800.0, rng), t0, 1.0)
+        if k % 2 == 0:
+            _ekle(mix, hat(rng, acik=(k % 4 == 2)), t0, 0.65)
+    gokyuzu = _yanki(gokyuzu)
+    mix = (mix + gokyuzu * 0.55) * 0.62          # yatak geri cekilir: gol vuruslari one ciksin
+    sidechain = np.ones_like(mix)
+    for g in goller_sn:
+        a, b = int((g - 0.06) * SR), int((g + 0.45) * SR)
+        sidechain[max(a, 0):b] *= 0.30
+        sidechain[int(max(g - 0.25, 0) * SR):max(a, 0)] *= 0.55
+    mix *= sidechain
+    for g in goller_sn:
+        _ekle(mix, riser(1.6, rng), max(g - 1.6, 0), 1.0)
+        _ekle(mix, darbe(rng), g, 1.35)
+        # gokyuzu parlamasi: golde yuksek canlar
+        for j, f in enumerate((1046.5, 1568.0, 2093.0)):
+            _ekle(mix, _can(f, 1.8), g + 0.06 * j, 1.1)
+    mix = np.tanh(mix * 0.9)
+    n = int(sure * SR)
+    mix = mix[:n]
+    son = int(2.0 * SR)
+    mix[-son:] *= np.linspace(1, 0, son) ** 1.5
+    mix /= max(np.abs(mix).max(), 1e-9)
+    mix *= 0.89
+    st = np.stack([mix, np.roll(mix, int(0.0004 * SR)) * 0.98], axis=1)
+    with wave.open(str(yol_wav), "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes((st * 32767).astype("<i2").tobytes())
+    return mix
+
+
+def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet"):
     video = Path(video)
     sure = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                           "-of", "default=nw=1:nk=1", str(video)]).decode().strip())
     goller_sn = [g / dk_sn for g in goller_dk]
     wav = video.with_suffix(".muzik.wav")
-    mix = uret(sure, goller_sn, wav)
-    cikis = video.with_name(video.stem + "_muzikli.mp4")
+    mix = (uret_celestial if stil == "celestial" else uret)(sure, goller_sn, wav)
+    cikis = video.with_name(video.stem + f"_muzikli_{stil}.mp4")
     subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(wav),
                            "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=9", "-c:a", "aac", "-b:a", "192k",
                            "-shortest", str(cikis)])
@@ -172,4 +284,5 @@ if __name__ == "__main__":
         raise SystemExit(__doc__)
     goller = [float(x) for x in a[a.index("--goller") + 1].split(",")] if "--goller" in a else []
     dk_sn = float(a[a.index("--dk-sn") + 1]) if "--dk-sn" in a else 2.2
-    print(videoya_ekle(a[0], goller, dk_sn))
+    stil = a[a.index("--stil") + 1] if "--stil" in a else "rekabet"
+    print(videoya_ekle(a[0], goller, dk_sn, stil))
