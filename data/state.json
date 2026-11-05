@@ -25,7 +25,8 @@
   "gonderilen": [
    "champions:asist",
    "champions:gol",
-   "champions:kart"
+   "champions:kart",
+   "europa:gol"
   ]
  },
  "oncesi": {
@@ -279,5 +280,5 @@
    "kart"
   ]
  },
- "avrupa_son": "2026-11-05T16:08:59.338546+00:00"
+ "avrupa_son": "2026-11-05T16:39:09.987307+00:00"
 }
