@@ -87,6 +87,28 @@ def riser(sure, rng):
     return (gurultu * 0.5 + ton * 0.5) * zarf * 0.55
 
 
+def tik(rng):
+    """Satir yerlestiginde keskin 'snap': 1.5/2.2/3.3 kHz kisa sinuslar + kisa gurultu (orta-ust bantta net)."""
+    t = np.arange(int(0.10 * SR)) / SR
+    ses = sum(np.sin(2 * np.pi * f * t) * np.exp(-t / d) * g
+              for f, d, g in ((1500, 0.022, 1.0), (2200, 0.016, 0.9), (3300, 0.011, 0.7)))
+    ses += _yuksek_geciren(rng.normal(0, 1, len(t)), 2500) * np.exp(-t / 0.004) * 0.9
+    ses[:int(0.0008 * SR)] *= np.linspace(0, 1, int(0.0008 * SR))
+    return ses / max(np.abs(ses).max(), 1e-9)
+
+
+def parilti(rng):
+    """Parilti: yukselen kucuk can notalari (sonuc aninda darbenin ustune)."""
+    sure = 1.8
+    t = np.arange(int(sure * SR)) / SR
+    ses = np.zeros(len(t))
+    for k, f in enumerate((1318.5, 1760.0, 2093.0, 2637.0, 3136.0, 3520.0)):
+        t0 = 0.05 * k
+        m = t >= t0
+        ses[m] += np.sin(2 * np.pi * f * (t[m] - t0)) * np.exp(-(t[m] - t0) / 0.28) * (0.9 - 0.08 * k)
+    return ses / max(np.abs(ses).max(), 1e-9) * 0.5
+
+
 def darbe(rng):
     t = np.arange(int(1.6 * SR)) / SR
     f = 28 + 90 * np.exp(-t * 9)
@@ -336,7 +358,8 @@ def gol_sesi_yukle(yol, sn=2.5):
     return x / max(np.abs(x).max(), 1e-9) * 0.9
 
 
-def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False, ses_dosyasi=None, ses_sn=2.5):
+def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False, ses_dosyasi=None, ses_sn=2.5,
+                sfx=None):
     x = _wav_oku(dosya)
     bpm = bpm_bul(x)
     ilk = ilk_vurus(x)
@@ -375,6 +398,9 @@ def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False,
         sc[int(max(g - 0.25, 0) * SR):max(a, 0)] *= 0.65
         if gol_sesi or ses_dosyasi:
             sc[b:int((g + 2.6) * SR)] *= 0.35             # gol sesi duyulsun diye muzik geri cekilir
+    for t_sfx, tur, _ in (sfx or []):                     # tik: muzik cok kisa (0.14 sn) geri cekilir, tik onun ustunde duyulur
+        if tur == "tik":
+            sc[int(max(t_sfx - 0.02, 0) * SR):int((t_sfx + 0.14) * SR)] *= 0.45
     mix *= sc[:, None]
     gercek = gol_sesi_yukle(ses_dosyasi, ses_sn) if ses_dosyasi else None
     for g in goller_sn:
@@ -390,6 +416,10 @@ def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False,
             _ekle(mix[:, ch], d, g, 0.45 if gercek is not None else 0.75)
             if k is not None:
                 _ekle(mix[:, ch], k, g + 0.05, 3.4)
+    for t_sfx, tur, kazanc in (sfx or []):               # videoya ozel efektler: (saniye, 'tik'|'parilti'|'darbe', kazanc)
+        snd = {"tik": tik, "parilti": parilti, "darbe": darbe}[tur](rng)
+        for ch in (0, 1):
+            _ekle(mix[:, ch], snd, t_sfx, kazanc)
     mix = mix[:n]
     son = int(2.0 * SR)
     mix[-son:] *= (np.linspace(1, 0, son) ** 1.5)[:, None]
@@ -412,14 +442,15 @@ def _lufs(yol):
     return float(re.findall(r"I:\s+(-?\d+\.\d+) LUFS", r.stderr)[-1])
 
 
-def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None, lufs=-22, gol_ses=None, gol_ses_sn=2.5):
+def videoya_ekle(video, goller_dk, dk_sn=2.2, stil="rekabet", dosya=None, lufs=-22, gol_ses=None, gol_ses_sn=2.5,
+                 sfx=None):
     video = Path(video)
     sure = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                           "-of", "default=nw=1:nk=1", str(video)]).decode().strip())
     goller_sn = [g / dk_sn for g in goller_dk]
     wav = video.with_suffix(".muzik.wav")
     if stil == "harici":
-        mix = uret_harici(dosya, sure, goller_sn, wav, ses_dosyasi=gol_ses, ses_sn=gol_ses_sn)
+        mix = uret_harici(dosya, sure, goller_sn, wav, ses_dosyasi=gol_ses, ses_sn=gol_ses_sn, sfx=sfx)
     else:
         mix = (uret_celestial if stil == "celestial" else uret)(sure, goller_sn, wav)
     cikis = video.with_name(video.stem + f"_muzikli_{stil}.mp4")
