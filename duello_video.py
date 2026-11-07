@@ -47,13 +47,16 @@ CARD_W = CARD_H = 440
 CARD_Y = 132
 CARD_X = (40, 600)
 
-TAKIM_RENK = [  # (anahtar, renk): takimin vurgu rengi
-    ("galatasaray", (236, 52, 60)), ("fenerbahce", (255, 208, 40)), ("besiktas", (232, 232, 240)),
-    ("trabzonspor", (96, 168, 255)), ("basaksehir", (255, 128, 30)), ("samsunspor", (236, 40, 50)),
-    ("konyaspor", (30, 190, 110)), ("kasimpasa", (70, 150, 240)), ("alanyaspor", (255, 150, 30)),
-    ("goztepe", (255, 190, 40)), ("rizespor", (30, 180, 140)), ("genclerbirligi", (236, 50, 60)),
-    ("eyupspor", (170, 90, 230)), ("kocaelispor", (30, 170, 90)), ("gaziantep", (236, 60, 60)),
-    ("corum", (220, 50, 70)), ("erzurum", (90, 140, 235)), ("amed", (40, 170, 100)),
+TAKIM_RENK = [  # (anahtar, (birincil, ikincil)): kulup renkleri; koyu zeminde okunsun diye lacivert/siyah acildi
+    ("galatasaray", ((236, 52, 60), (255, 200, 0))), ("fenerbahce", ((255, 208, 40), (40, 70, 180))),
+    ("besiktas", ((235, 235, 240), (110, 114, 126))), ("trabzonspor", ((176, 40, 84), (96, 168, 255))),
+    ("basaksehir", ((255, 128, 30), (40, 70, 160))), ("samsunspor", ((236, 40, 50), (240, 240, 245))),
+    ("konyaspor", ((30, 190, 110), (240, 240, 245))), ("kasimpasa", ((70, 150, 240), (240, 240, 245))),
+    ("alanyaspor", ((255, 150, 30), (30, 170, 90))), ("goztepe", ((236, 50, 60), (255, 200, 0))),
+    ("rizespor", ((30, 175, 100), (50, 120, 210))), ("genclerbirligi", ((236, 50, 60), (240, 240, 245))),
+    ("eyupspor", ((170, 90, 230), (255, 200, 0))), ("kocaelispor", ((30, 170, 90), (240, 240, 245))),
+    ("gaziantep", ((236, 60, 60), (240, 240, 245))), ("corum", ((220, 50, 70), (240, 240, 245))),
+    ("erzurum", ((90, 140, 235), (240, 240, 245))), ("amed", ((40, 170, 100), (225, 55, 65))),
 ]
 
 
@@ -77,12 +80,17 @@ def _pop(p, asim=0.14):
     return 1 + asim * math.sin(min(p, 1.0) * math.pi) * (1 - p) if p < 1 else 1.0
 
 
-def takim_rengi(takim):
+def takim_ikili(takim):
+    """(birincil, ikincil) kulup renkleri; bilinmeyen takimda birincil kirmizi, ikincil beyaz."""
     n = fotograf.norm(takim)
     for k, r in TAKIM_RENK:
         if k in n:
             return r
-    return (220, 70, 80)
+    return (220, 70, 80), (240, 240, 245)
+
+
+def takim_rengi(takim):
+    return takim_ikili(takim)[0]
 
 
 def renk_ayir(ca, cb):
@@ -208,6 +216,7 @@ class Video:
         self.n = len(satirlar)
         self.ca, self.cb = renk_ayir(takim_rengi(ka["takim"]), takim_rengi(kb["takim"]))
         self.renk = (self.ca, self.cb)
+        self.renk2 = (takim_ikili(ka["takim"])[1], takim_ikili(kb["takim"])[1])     # kulubun ikinci rengi
         self.puan = (sum(r["wa"] for r in satirlar), sum(r["wb"] for r in satirlar))
         # zaman cizelgesi (vurus cinsinden)
         self.r0 = HOOK_B                                    # ilk satir
@@ -235,7 +244,8 @@ class Video:
 
     # ---- onbellekli katmanlar ----
     def _hazirla(self):
-        self.kartlar = [self._kart(o, c) for o, c in ((self.ka, self.ca), (self.kb, self.cb))]
+        self.kartlar = [self._kart(o, c, c2) for o, c, c2 in ((self.ka, self.ca, self.renk2[0]),
+                                                              (self.kb, self.cb, self.renk2[1]))]
         self.kart_soluk = [self._soluk(k) for k in self.kartlar]
         self.chipler = [self._chipler(o, c) for o, c in ((self.ka, self.ca), (self.kb, self.cb))]
         self.vig = self._vinyet()
@@ -277,7 +287,7 @@ class Video:
         im.putalpha(Image.fromarray((k * 190).astype("uint8")))
         return im.resize((W, H), Image.BICUBIC)
 
-    def _kart(self, o, renk):
+    def _kart(self, o, renk, renk2):
         """Foto + isim/takim alt kapakli kart (CARD_W x CARD_H, RGBA, yuvarlak)."""
         S = 2
         w, h = CARD_W * S, CARD_H * S
@@ -304,11 +314,19 @@ class Video:
         l1 = " · ".join(x for x in ((f'{o["yas"]} yaş' if o.get("yas") else None), kart_v2.takim_adi(o["takim"])) if x)
         f2 = sigan(l1, CARD_W - 44, 28, False, 20)
         d.text((22 * S, (CARD_H - 60) * S), l1, font=F(f2.size * S, False), fill=ETIKET)
-        d.rectangle([0, h - 8 * S, w, h], fill=tuple(renk) + (255,))   # takim rengi alt cizgi
+        d.rectangle([0, h - 8 * S, w // 2, h], fill=tuple(renk) + (255,))           # alt cizgi: iki kulup rengi
+        d.rectangle([w // 2, h - 8 * S, w, h], fill=tuple(renk2) + (255,))
         maske = Image.new("L", (w, h), 0)
         ImageDraw.Draw(maske).rounded_rectangle([0, 0, w - 1, h - 1], 34 * S, fill=255)
-        cerceve = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        ImageDraw.Draw(cerceve).rounded_rectangle([0, 0, w - 1, h - 1], 34 * S, outline=tuple(renk) + (255,), width=3 * S)
+        # cerceve: kulup renkleri capraz bolunmus (sol-ust birincil, sag-alt ikincil, yumusak gecis)
+        halka = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(halka).rounded_rectangle([0, 0, w - 1, h - 1], 34 * S, outline=255, width=7 * S)
+        yy, xx = np.mgrid[0:h, 0:w]
+        u = (xx / w + yy / h) / 2
+        k = np.clip((u - 0.46) / 0.08, 0, 1)[..., None]
+        renk_alani = (np.array(renk, float) * (1 - k) + np.array(renk2, float) * k).astype("uint8")
+        cerceve = Image.fromarray(renk_alani, "RGB").convert("RGBA")
+        cerceve.putalpha(halka)
         im.alpha_composite(cerceve)
         out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         out.paste(im, (0, 0), maske)
