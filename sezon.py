@@ -203,7 +203,7 @@ def kart_ciz(rol, a, b, benzerlik, yol, baslik=None):
 
     def oyuncu(o):
         return {"id": o["id"], "ad": o["ad"], "takim": o["takim"], "yas": o.get("yas"), "st": o["st"],
-                "satir2": None}
+                "satir2": None, "profil": True}
     ka, kb = oyuncu(a), oyuncu(b)
     kart_v2.ciz(yol, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", baslik or f"{SEZON}-{str(SEZON + 1)[2:]} sezonu", ka, kb,
                 _satir.sezon_satirlari(rol), "İkisinden hangisini seçerdin?", kotu=KOTU)
@@ -276,6 +276,11 @@ def sezon_verisi(yenile=False):
     {"Oyuncu Adi": "Rol"} seklinde duzeltilir."""
     oyuncular = [o for o in _sezon_verisi_ham(yenile) if o["st"]["minutes"] > MIN_DAKIKA]
     oyuncular = orta_saha_sinifla(oyuncular)
+    try:                      # PitchAPI gelismis istatistikleri (xG, xA, kilit pas...); yoksa ESPN ile devam
+        import gelismis
+        gelismis.ekle(oyuncular)
+    except Exception as e:
+        print(f"gelismis istatistikler eklenemedi: {e}")
     if not DUZELTME.exists():
         return oyuncular
     gecerli = set(ROL.values())

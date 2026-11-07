@@ -44,7 +44,7 @@ def _piyasa_yukle():
             ham = json.loads(yol.read_text(encoding="utf-8"))
         except Exception:
             ham = {}
-        PIYASA = {"otomatik": ham.get("otomatik", {}),
+        PIYASA = {"otomatik": ham.get("otomatik", {}), "profil": ham.get("profil", {}),
                   "elle": {fotograf.norm(k): float(v) * 1_000_000 for k, v in ham.get("elle", {}).items()}}
     return PIYASA
 
@@ -63,11 +63,50 @@ def piyasa_degeri(o):
     return f"€{round(eur / 1000)} bin"
 
 
+ULKELER = {
+    "Turkey": "Türkiye", "Portugal": "Portekiz", "France": "Fransa", "Brazil": "Brezilya", "Germany": "Almanya",
+    "Nigeria": "Nijerya", "Cote d'Ivoire": "Fildişi Sahili", "Romania": "Romanya", "Poland": "Polonya",
+    "Kosovo": "Kosova", "Senegal": "Senegal", "Mali": "Mali", "Cameroon": "Kamerun", "Scotland": "İskoçya",
+    "Italy": "İtalya", "Bosnia-Herzegovina": "Bosna Hersek", "The Gambia": "Gambiya", "Ghana": "Gana",
+    "Spain": "İspanya", "Angola": "Angola", "DR Congo": "DR Kongo", "Guinea": "Gine", "Belgium": "Belçika",
+    "Serbia": "Sırbistan", "Albania": "Arnavutluk", "Georgia": "Gürcistan", "Suriname": "Surinam",
+    "Morocco": "Fas", "Cape Verde": "Yeşil Burun", "England": "İngiltere", "Greece": "Yunanistan",
+    "Croatia": "Hırvatistan", "Congo": "Kongo", "Switzerland": "İsviçre", "Netherlands": "Hollanda",
+    "Hungary": "Macaristan", "Curacao": "Curaçao", "Denmark": "Danimarka", "Uzbekistan": "Özbekistan",
+    "Iceland": "İzlanda", "Egypt": "Mısır", "Israel": "İsrail", "Madagascar": "Madagaskar", "Austria": "Avusturya",
+    "Comoros": "Komorlar", "Panama": "Panama", "Benin": "Benin", "Czech Republic": "Çekya", "Chile": "Şili",
+    "Slovakia": "Slovakya", "Colombia": "Kolombiya", "Gabon": "Gabon", "Uruguay": "Uruguay", "Jamaica": "Jamaika",
+    "Tanzania": "Tanzanya", "United Arab Emirates": "BAE", "Ireland": "İrlanda", "Tunisia": "Tunus",
+    "Sweden": "İsveç", "Honduras": "Honduras", "North Macedonia": "Kuzey Makedonya", "Montenegro": "Karadağ",
+    "Ukraine": "Ukrayna", "Norway": "Norveç", "Venezuela": "Venezuela",
+}
+AYAKLAR = {"right": "Sağ ayak", "left": "Sol ayak", "both": "İki ayak"}
+
+
+def profil_metni(o):
+    """'184 cm · Sol ayak · Nijerya' (Transfermarkt acik veri seti); veri yoksa None."""
+    p = _piyasa_yukle().get("profil", {}).get(str(o.get("id")))
+    if not p:
+        return None
+    parcalar = []
+    if p.get("boy"):
+        parcalar.append(f"{p['boy']} cm")
+    if p.get("ayak") in AYAKLAR:
+        parcalar.append(AYAKLAR[p["ayak"]])
+    if p.get("uyruk"):
+        parcalar.append(ULKELER.get(p["uyruk"], p["uyruk"]))
+    return " · ".join(parcalar) or None
+
+
 def takim_adi(ad):
     return TAKIM_ADLARI.get(fotograf.norm(ad).replace("  ", " "), ad)
 
 
-YUZDE_ALANLARI = {"passPct", "saveRate", "shotAcc", "tackleSuccess"}
+YUZDE_ALANLARI = {"passPct", "saveRate", "shotAcc", "tackleSuccess", "boxShotPct", "aerialPct"}
+# PitchAPI gelismis alanlari: veri yoksa None; iki oyuncuda da yoksa satir gizlenir
+GELISMIS = {"xG", "xA", "xgDiff", "boxShotPct", "keyPasses", "progPasses", "takeOnsWon", "interceptions",
+            "blocks", "aerialPct", "passesIntoBox"}
+ONDALIK = {"gcPerMatch", "puan", "xG", "xA"}
 
 
 def _oran(pay, payda):
@@ -89,6 +128,16 @@ def _deger(o, alan):
         return g("goalsConceded", 0) / g("appearances", 0) if g("appearances", 0) else None
     if alan == "passPct":
         return g("passPct", 0) * 100
+    if alan in GELISMIS:
+        if "xG" not in st:                     # bu oyuncu icin PitchAPI verisi yok
+            return None
+        if alan == "xgDiff":
+            return g("pitchGoals", g("totalGoals", 0)) - g("xG", 0)
+        if alan == "boxShotPct":
+            return _oran(g("boxShots", 0), g("pitchShots", 0))
+        if alan == "aerialPct":
+            return _oran(g("aerialsWon", 0), g("aerials", 0))
+        return g(alan, 0)
     return g(alan, 0)
 
 
@@ -97,7 +146,9 @@ def _metin(v, alan):
         return "–"
     if alan in YUZDE_ALANLARI:
         return f"%{round(v)}"
-    if alan in ("gcPerMatch", "puan"):
+    if alan == "xgDiff":
+        return f"{v:+.1f}".replace(".", ",")
+    if alan in ONDALIK:
         return f"{v:.1f}".replace(".", ",")
     return str(int(round(v)))
 
@@ -141,7 +192,8 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
         ortala(392, l1, sigdir(d, l1, 500, 30, False, 20), ETIKET, cx - 270, cx + 270)
         pd = piyasa_degeri(o)
         o["_deger"] = pd
-        s2 = " · ".join(x for x in (o.get("satir2"), (f"Değer: {pd}" if pd else None)) if x)
+        ek = profil_metni(o) if o.get("profil") else o.get("satir2")
+        s2 = " · ".join(x for x in (ek, (f"Değer {pd}" if (pd and o.get("profil")) else (f"Değer: {pd}" if pd else None))) if x)
         if s2:
             ortala(428, s2, sigdir(d, s2, 520, 28, False, 20), SOLUK, cx - 270, cx + 270)
     # VS rozeti
@@ -151,7 +203,8 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
     # istatistik satirlari
     y0 = 478
     # her iki oyuncuda da verisi olmayan puan satirini gizle
-    satirlar = [r for r in satirlar if not (r[0] == "puan" and _deger(a, "puan") is None and _deger(b, "puan") is None)]
+    satirlar = [r for r in satirlar if not (r[0] in GELISMIS | {"puan"} and _deger(a, r[0]) is None
+                                            and _deger(b, r[0]) is None)]
     n = len(satirlar)
     h = 90 if n < 7 else min(68, 470 // n)     # az satirda genis, cok satirda dar satir
     off = max(0, (h - 68) / 2)
@@ -175,6 +228,7 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
 
     ortala(H - 112, HESAP, font(54), BEYAZ)
     kaynaklar = sorted({o["_foto"] for o in (a, b) if o.get("_foto")})
-    alt = "Veri: ESPN" + ("  ·  Değer: Transfermarkt" if any(o.get("_deger") for o in (a, b)) else "") +         ("  ·  Puan: APIfootball" if any(_deger(o, "puan") for o in (a, b)) else "") +         (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
-    ortala(H - 52, alt, font(24, False), SOLUK)
+    alt = "Veri: ESPN" + ("  ·  Değer: Transfermarkt" if any(o.get("_deger") for o in (a, b)) else "") +         ("  ·  Puan: APIfootball" if any(_deger(o, "puan") for o in (a, b)) else "") + \
+        ("  ·  Gelişmiş: PitchAPI" if any(r[0] in GELISMIS for r in satirlar) else "") +         (f"  ·  Foto: {', '.join(kaynaklar)}" if kaynaklar else "")
+    ortala(H - 52, alt, sigdir(d, alt, 1000, 24, False, 16), SOLUK)
     img.save(yol)

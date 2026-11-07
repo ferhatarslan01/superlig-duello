@@ -47,6 +47,10 @@ def main():
     by = defaultdict(list)
     for x in satirlar:
         by[fotograf.norm(x["name"])].append(x)
+    with gzip.open(yol, "rt", encoding="utf-8", newline="") as f:      # profil: degeri olmayanlar da dahil
+        tum = defaultdict(list)
+        for x in csv.DictReader(f):
+            tum[fotograf.norm(x["name"])].append(x)
 
     bugun = datetime.date.today()
     otomatik, yok = {}, []
@@ -60,16 +64,37 @@ def main():
         else:
             yok.append(o["ad"])
 
+    profil = {}
+    for o in sezon.sezon_verisi():
+        adaylar = tum.get(fotograf.norm(o["ad"]), [])
+        if o.get("yas"):
+            adaylar = [x for x in adaylar if abs((yas(x["date_of_birth"], bugun) or 99) - o["yas"]) <= YAS_TOLERANS]
+        if len({x["player_id"] for x in adaylar}) != 1:
+            continue
+        x = adaylar[0]
+        p = {}
+        if x.get("height_in_cm"):
+            p["boy"] = int(float(x["height_in_cm"]))
+        if x.get("foot"):
+            p["ayak"] = x["foot"]
+        if x.get("country_of_citizenship"):
+            p["uyruk"] = x["country_of_citizenship"]
+        if p:
+            profil[str(o["id"])] = p
+
     mevcut = json.loads(HEDEF.read_text(encoding="utf-8")) if HEDEF.exists() else {}
     cikti = {
         "_aciklama": "otomatik: {espn_id: euro} (Transfermarkt acik veri seti, CC0); elle: {\"Ad Soyad\": milyon_euro}",
         "_kaynak": "https://github.com/dcaribou/transfermarkt-datasets",
         "_guncelleme": bugun.isoformat(),
         "otomatik": otomatik,
+        "profil": profil,
         "elle": mevcut.get("elle", {}),
     }
     HEDEF.write_text(json.dumps(cikti, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"{len(otomatik)} oyuncunun degeri eslesti, {len(yok)} oyuncu eslesmedi")
+    print(f"{len(otomatik)} oyuncunun degeri eslesti, {len(yok)} oyuncu eslesmedi; profil: {len(profil)} oyuncu")
+    from collections import Counter
+    print("uyruklar:", sorted(Counter(p.get("uyruk") for p in profil.values()).items(), key=lambda x: -x[1]))
 
 
 if __name__ == "__main__":

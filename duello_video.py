@@ -42,8 +42,8 @@ def hazirla(ad1, ad2):
                     "satir2": None}
     ka, kb = oy(a), oy(b)
     sat = _satir.sezon_satirlari(rol)
-    sat = [r for r in sat if not (r[0] == "puan" and kart_v2._deger(ka, "puan") is None
-                                  and kart_v2._deger(kb, "puan") is None)]
+    sat = [r for r in sat if not (r[0] in kart_v2.GELISMIS | {"puan"} and kart_v2._deger(ka, r[0]) is None
+                                  and kart_v2._deger(kb, r[0]) is None)]
     satirlar = []
     for alan, etiket in sat:
         va, vb = kart_v2._deger(ka, alan), kart_v2._deger(kb, alan)
@@ -82,9 +82,9 @@ class Video:
             d.text((cx - d.textlength(l1, font=f1) / 2, 304), l1, font=f1, fill=ETIKET)
             pd = kart_v2.piyasa_degeri(o)
             o["_deger"] = pd
-            if pd:
-                f2 = font(26, False)
-                tx = f"Değer: {pd}"
+            tx = " · ".join(x for x in (kart_v2.profil_metni(o), f"Değer {pd}" if pd else None) if x)
+            if tx:
+                f2 = sigdir(d, tx, 520, 26, False, 18)
                 d.text((cx - d.textlength(tx, font=f2) / 2, 338), tx, font=f2, fill=SOLUK)
         d.text((W / 2 - d.textlength("VS", font=font(38)) / 2, 104), "VS", font=font(38), fill=SOLUK)
         # alt: hesap

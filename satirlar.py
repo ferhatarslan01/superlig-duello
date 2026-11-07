@@ -12,32 +12,31 @@ VURGUSUZ = {"foulsCommitted", "yellowCards", "redCards", "offsides", "goalsConce
             "appearances", "minutes", "starts", "subIns"}
 
 # --- SEZON ---
-_UCLU = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
-         ("shotAcc", "ŞUT İSABETİ"), ("minPerGoal", "GOL BAŞINA DAKİKA"),
-         ("foulsSuffered", "KAZANILAN FAUL"), ("offsides", "OFSAYT")]
-_OFANSIF_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
-               ("shotAcc", "ŞUT İSABETİ"), ("passPct", "PAS İSABETİ"),
-               ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_ORTA_SAHA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
-              ("passPct", "PAS İSABETİ"), ("effectiveTackles", "TOP ÇALMA"),
-              ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_SAVUNMA_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
-               ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
-               ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-_STOPER = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
-           ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
-           ("passPct", "PAS İSABETİ"), ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
-_BEK = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
-        ("tackleSuccess", "TOP ÇALMA BAŞARISI"), ("totalClearance", "UZAKLAŞTIRMA"),
-        ("passPct", "PAS İSABETİ"), ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
+# xG, xA, kilit pas vb. PitchAPI'den (gelismis.py); veri yoksa satir kartta gizlenir.
+_FORVET = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xG", "BEKLENEN GOL (xG)"),
+           ("xgDiff", "GOL - xG FARKI"), ("totalShots", "ŞUT"), ("boxShotPct", "CEZA SAHASI İÇİ ŞUT")]
+_KANAT = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xG", "BEKLENEN GOL (xG)"),
+          ("xA", "BEKLENEN ASİST (xA)"), ("keyPasses", "KİLİT PAS"), ("takeOnsWon", "BAŞARILI ÇALIM")]
+_OFANSIF_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xA", "BEKLENEN ASİST (xA)"),
+               ("keyPasses", "KİLİT PAS"), ("progPasses", "İLERLETİCİ PAS"), ("takeOnsWon", "BAŞARILI ÇALIM")]
+_YAN_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xA", "BEKLENEN ASİST (xA)"),
+           ("keyPasses", "KİLİT PAS"), ("takeOnsWon", "BAŞARILI ÇALIM"), ("progPasses", "İLERLETİCİ PAS")]
+_MERKEZ_OS = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xA", "BEKLENEN ASİST (xA)"),
+              ("keyPasses", "KİLİT PAS"), ("progPasses", "İLERLETİCİ PAS"), ("passPct", "PAS İSABETİ")]
+_SAVUNMA_OS = [("totalGoals", "GOL"), ("effectiveTackles", "TOP ÇALMA"), ("interceptions", "PAS ARASI"),
+               ("progPasses", "İLERLETİCİ PAS"), ("aerialPct", "HAVA TOPU KAZANMA"), ("passPct", "PAS İSABETİ")]
+_STOPER = [("effectiveTackles", "TOP ÇALMA"), ("interceptions", "PAS ARASI"), ("blocks", "BLOK"),
+           ("totalClearance", "UZAKLAŞTIRMA"), ("aerialPct", "HAVA TOPU KAZANMA"), ("passPct", "PAS İSABETİ")]
+_BEK = [("goalAssists", "ASİST"), ("keyPasses", "KİLİT PAS"), ("progPasses", "İLERLETİCİ PAS"),
+        ("effectiveTackles", "TOP ÇALMA"), ("interceptions", "PAS ARASI"), ("takeOnsWon", "BAŞARILI ÇALIM")]
 _KALECI = [("appearances", "MAÇ"), ("saves", "KURTARIŞ"), ("cleanSheet", "GOL YEMEDEN BİTEN MAÇ"),
            ("saveRate", "KURTARIŞ ORANI"), ("gcPerMatch", "MAÇ BAŞINA YENEN GOL"),
            ("penaltyKicksSaved", "PENALTI KURTARMA"), ("accuratePasses", "İSABETLİ PAS")]
 
 SEZON = {
-    "Forvet": _UCLU, "Kanat": _UCLU,
+    "Forvet": _FORVET, "Kanat": _KANAT,
     "Ofansif orta saha": _OFANSIF_OS,
-    "Yan orta saha": _ORTA_SAHA, "Merkez orta saha": _ORTA_SAHA,
+    "Yan orta saha": _YAN_OS, "Merkez orta saha": _MERKEZ_OS,
     "Defansif orta saha": _SAVUNMA_OS,
     "Stoper": _STOPER, "Bek": _BEK, "Kaleci": _KALECI,
 }
@@ -80,7 +79,7 @@ def _birlestir(on, satirlar):
 
 
 def sezon_satirlari(rol):
-    return _birlestir(SEZON_ON, SEZON.get(rol, _ORTA_SAHA))
+    return _birlestir(SEZON_ON, SEZON.get(rol, _MERKEZ_OS))
 
 
 def mac_satirlari(rol):

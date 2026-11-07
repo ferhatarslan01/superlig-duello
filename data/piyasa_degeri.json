@@ -1,7 +1,7 @@
 {
  "_aciklama": "otomatik: {espn_id: euro} (Transfermarkt acik veri seti, CC0); elle: {\"Ad Soyad\": milyon_euro}",
  "_kaynak": "https://github.com/dcaribou/transfermarkt-datasets",
- "_guncelleme": "2026-10-23",
+ "_guncelleme": "2026-11-07",
  "otomatik": {
   "143774": 50000,
   "202173": 900000,
@@ -11,6 +11,7 @@
   "240062": 1800000,
   "259139": 1000000,
   "297014": 2000000,
+  "297033": 7000000,
   "346891": 1500000,
   "232492": 1500000,
   "349018": 3000000,
@@ -46,17 +47,20 @@
   "174980": 18000000,
   "217476": 7000000,
   "235677": 35000000,
+  "318534": 25000000,
   "261595": 5000000,
   "260782": 2000000,
   "266162": 2000000,
   "367665": 3000000,
   "218618": 700000,
   "226180": 2800000,
+  "228546": 150000,
   "291634": 1200000,
   "306808": 3000000,
   "174010": 1500000,
   "266562": 3000000,
   "267008": 3500000,
+  "286948": 3000000,
   "299572": 2200000,
   "328463": 1500000,
   "365404": 600000,
@@ -95,6 +99,7 @@
   "222670": 6000000,
   "266002": 7000000,
   "320982": 12000000,
+  "357205": 10000000,
   "173556": 4000000,
   "195821": 15000000,
   "211923": 3000000,
@@ -109,6 +114,7 @@
   "193149": 6500000,
   "197105": 16000000,
   "268796": 8000000,
+  "286569": 23000000,
   "287678": 5000000,
   "181729": 4500000,
   "212973": 10000000,
@@ -142,6 +148,7 @@
   "345237": 2200000,
   "183152": 800000,
   "275061": 1000000,
+  "284592": 2000000,
   "297219": 2000000,
   "322841": 1200000,
   "405540": 5000000,
@@ -193,6 +200,7 @@
   "406539": 800000,
   "410358": 4000000,
   "188053": 1000000,
+  "191946": 1200000,
   "298404": 2000000,
   "364830": 650000,
   "219463": 800000,
@@ -223,10 +231,12 @@
   "274270": 3000000,
   "277382": 2000000,
   "324814": 1000000,
+  "218104": 2500000,
   "222395": 400000,
   "238896": 2500000,
   "296563": 2500000,
   "177065": 500000,
+  "206999": 2500000,
   "243816": 3500000,
   "273223": 2800000,
   "287077": 800000,
@@ -235,10 +245,12 @@
   "305194": 3000000,
   "338308": 600000,
   "345934": 1000000,
+  "364674": 1500000,
   "252392": 2000000,
   "261298": 1000000,
   "272734": 800000,
   "277435": 1000000,
+  "307519": 2500000,
   "311429": 700000,
   "267519": 4500000,
   "273301": 400000,
@@ -270,10 +282,1462 @@
   "259179": 1500000,
   "292081": 2500000,
   "292231": 1200000,
+  "414676": 5000000,
   "82009": 5000000,
+  "174979": 1200000,
   "239706": 4000000,
   "298350": 3500000,
+  "305554": 5000000,
   "364422": 1200000
+ },
+ "profil": {
+  "143774": {
+   "boy": 187,
+   "ayak": "left",
+   "uyruk": "Brazil"
+  },
+  "202173": {
+   "boy": 186,
+   "ayak": "left",
+   "uyruk": "Kosovo"
+  },
+  "212334": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Kosovo"
+  },
+  "240971": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "324561": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "240062": {
+   "boy": 182,
+   "ayak": "both",
+   "uyruk": "Romania"
+  },
+  "259139": {
+   "boy": 167,
+   "ayak": "left",
+   "uyruk": "Spain"
+  },
+  "297014": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Congo"
+  },
+  "297033": {
+   "boy": 173,
+   "ayak": "right",
+   "uyruk": "Angola"
+  },
+  "346891": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "232492": {
+   "boy": 173,
+   "ayak": "right",
+   "uyruk": "DR Congo"
+  },
+  "349018": {
+   "boy": 172,
+   "ayak": "right",
+   "uyruk": "Brazil"
+  },
+  "362717": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Cameroon"
+  },
+  "387821": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "392055": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "231282": {
+   "boy": 196,
+   "ayak": "right",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "190262": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Scotland"
+  },
+  "272195": {
+   "boy": 178,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "275141": {
+   "boy": 188,
+   "ayak": "both",
+   "uyruk": "Türkiye"
+  },
+  "289594": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Kosovo"
+  },
+  "397220": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Guinea"
+  },
+  "108251": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Germany"
+  },
+  "168385": {
+   "boy": 168,
+   "ayak": "left",
+   "uyruk": "Israel"
+  },
+  "204793": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "213101": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Madagascar"
+  },
+  "345431": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Austria"
+  },
+  "356967": {
+   "boy": 170,
+   "ayak": "left",
+   "uyruk": "Comoros"
+  },
+  "193526": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "Senegal"
+  },
+  "288476": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "296553": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Switzerland"
+  },
+  "342759": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Kosovo"
+  },
+  "356402": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "205750": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Germany"
+  },
+  "216420": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Panama"
+  },
+  "283682": {
+   "boy": 190,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "283691": {
+   "boy": 174,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "308449": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "345243": {
+   "boy": 184,
+   "ayak": "left",
+   "uyruk": "France"
+  },
+  "372033": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Germany"
+  },
+  "187638": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "225563": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "272700": {
+   "boy": 175,
+   "ayak": "both",
+   "uyruk": "Türkiye"
+  },
+  "319985": {
+   "boy": 174,
+   "ayak": "right",
+   "uyruk": "Benin"
+  },
+  "323975": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Italy"
+  },
+  "174980": {
+   "boy": 172,
+   "ayak": "right",
+   "uyruk": "Belgium"
+  },
+  "217476": {
+   "boy": 182,
+   "ayak": "left",
+   "uyruk": "Czech Republic"
+  },
+  "235677": {
+   "boy": 190,
+   "ayak": "left",
+   "uyruk": "Serbia"
+  },
+  "318534": {
+   "boy": 176,
+   "ayak": "right",
+   "uyruk": "Netherlands"
+  },
+  "384290": {
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "261595": {
+   "boy": 194,
+   "ayak": "right",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "260782": {
+   "boy": 190,
+   "ayak": "right",
+   "uyruk": "Hungary"
+  },
+  "266162": {
+   "boy": 187,
+   "ayak": "left",
+   "uyruk": "Mali"
+  },
+  "367665": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "218618": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "226180": {
+   "boy": 173,
+   "ayak": "right",
+   "uyruk": "Albania"
+  },
+  "228546": {
+   "boy": 189,
+   "uyruk": "Mali"
+  },
+  "291634": {
+   "boy": 177,
+   "ayak": "right",
+   "uyruk": "Bosnia-Herzegovina"
+  },
+  "306808": {
+   "boy": 172,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "174010": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "The Gambia"
+  },
+  "266562": {
+   "boy": 181,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "267008": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Romania"
+  },
+  "286948": {
+   "boy": 194,
+   "ayak": "right",
+   "uyruk": "Italy"
+  },
+  "299572": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "328463": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "Scotland"
+  },
+  "365404": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "375314": {
+   "boy": 184,
+   "ayak": "left",
+   "uyruk": "Romania"
+  },
+  "153939": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "152836": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "Turkey"
+  },
+  "203903": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "Turkey"
+  },
+  "257942": {
+   "boy": 189,
+   "ayak": "left",
+   "uyruk": "Bosnia-Herzegovina"
+  },
+  "305852": {
+   "boy": 174,
+   "ayak": "left",
+   "uyruk": "Georgia"
+  },
+  "347624": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Kosovo"
+  },
+  "160974": {
+   "boy": 170,
+   "ayak": "right",
+   "uyruk": "Chile"
+  },
+  "214311": {
+   "boy": 176,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "266057": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Ghana"
+  },
+  "266572": {
+   "boy": 174,
+   "ayak": "left",
+   "uyruk": "Turkey"
+  },
+  "276264": {
+   "boy": 177,
+   "ayak": "right",
+   "uyruk": "Belgium"
+  },
+  "180758": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Turkey"
+  },
+  "199663": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Suriname"
+  },
+  "308726": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "164414": {
+   "boy": 188,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "285799": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Romania"
+  },
+  "232461": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Morocco"
+  },
+  "241321": {
+   "boy": 190,
+   "ayak": "left",
+   "uyruk": "Scotland"
+  },
+  "322822": {
+   "boy": 192,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "346890": {
+   "boy": 181,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "252293": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Morocco"
+  },
+  "373611": {
+   "boy": 170,
+   "ayak": "right",
+   "uyruk": "Cape Verde"
+  },
+  "378017": {
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "214690": {
+   "boy": 172,
+   "ayak": "left",
+   "uyruk": "France"
+  },
+  "249364": {
+   "boy": 176,
+   "ayak": "right",
+   "uyruk": "Poland"
+  },
+  "259114": {
+   "boy": 170,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "266284": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "284718": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "359150": {
+   "uyruk": "Nigeria"
+  },
+  "176948": {
+   "boy": 188,
+   "ayak": "left",
+   "uyruk": "Brazil"
+  },
+  "159248": {
+   "boy": 180,
+   "ayak": "left",
+   "uyruk": "Netherlands"
+  },
+  "175195": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Slovakia"
+  },
+  "222670": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "266002": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "320982": {
+   "boy": 190,
+   "ayak": "left",
+   "uyruk": "England"
+  },
+  "357205": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Ghana"
+  },
+  "173556": {
+   "boy": 168,
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "195821": {
+   "boy": 182,
+   "ayak": "left",
+   "uyruk": "Spain"
+  },
+  "211923": {
+   "boy": 180,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "248676": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "305629": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "139437": {
+   "boy": 190,
+   "ayak": "left",
+   "uyruk": "Belgium"
+  },
+  "240209": {
+   "boy": 194,
+   "ayak": "left",
+   "uyruk": "Kosovo"
+  },
+  "276221": {
+   "boy": 181,
+   "ayak": "both",
+   "uyruk": "England"
+  },
+  "306789": {
+   "boy": 172,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "322813": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "222922": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "193149": {
+   "boy": 185,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "197105": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Colombia"
+  },
+  "268796": {
+   "boy": 184,
+   "ayak": "left",
+   "uyruk": "Senegal"
+  },
+  "286569": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "287678": {
+   "boy": 181,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "181729": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Gabon"
+  },
+  "212973": {
+   "boy": 166,
+   "ayak": "right",
+   "uyruk": "Uruguay"
+  },
+  "268478": {
+   "boy": 186,
+   "ayak": "left",
+   "uyruk": "Brazil"
+  },
+  "202641": {
+   "boy": 183,
+   "ayak": "left",
+   "uyruk": "Germany"
+  },
+  "219444": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Hungary"
+  },
+  "228296": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "258917": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "266575": {
+   "boy": 173,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "322538": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "350513": {
+   "boy": 192,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "320305": {
+   "boy": 191,
+   "ayak": "left",
+   "uyruk": "Poland"
+  },
+  "200981": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Suriname"
+  },
+  "240542": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Romania"
+  },
+  "292078": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "310965": {
+   "boy": 180,
+   "ayak": "left",
+   "uyruk": "Germany"
+  },
+  "340239": {
+   "boy": 188,
+   "ayak": "left",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "216287": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Curacao"
+  },
+  "281531": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "316281": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Poland"
+  },
+  "325025": {
+   "boy": 172,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "240580": {
+   "boy": 190,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "273296": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "297299": {
+   "boy": 176,
+   "ayak": "right",
+   "uyruk": "Curacao"
+  },
+  "354198": {
+   "boy": 192,
+   "ayak": "right",
+   "uyruk": "Jamaica"
+  },
+  "241797": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "187896": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Greece"
+  },
+  "224188": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "257300": {
+   "boy": 176,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "345237": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "183152": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "275061": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Guinea"
+  },
+  "284592": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Senegal"
+  },
+  "297219": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Italy"
+  },
+  "322841": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "405540": {
+   "boy": 188,
+   "ayak": "left",
+   "uyruk": "Portugal"
+  },
+  "228556": {
+   "boy": 173,
+   "ayak": "left",
+   "uyruk": "Mali"
+  },
+  "290081": {
+   "boy": 176,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "296162": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "258926": {
+   "boy": 196,
+   "ayak": "left",
+   "uyruk": "Georgia"
+  },
+  "284251": {
+   "boy": 202,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "195086": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "The Gambia"
+  },
+  "319440": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Cameroon"
+  },
+  "320217": {
+   "boy": 185,
+   "ayak": "left",
+   "uyruk": "Tanzania"
+  },
+  "330711": {
+   "boy": 190,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "355150": {
+   "boy": 185,
+   "ayak": "left",
+   "uyruk": "United Arab Emirates"
+  },
+  "387304": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "387319": {
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "271737": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "290184": {
+   "boy": 181,
+   "ayak": "right",
+   "uyruk": "Switzerland"
+  },
+  "303072": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Brazil"
+  },
+  "335913": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "England"
+  },
+  "297074": {
+   "boy": 181,
+   "ayak": "right",
+   "uyruk": "Brazil"
+  },
+  "325022": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "330006": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Ireland"
+  },
+  "358165": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Brazil"
+  },
+  "361901": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Brazil"
+  },
+  "241800": {
+   "boy": 192,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "307274": {
+   "boy": 200,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "249072": {
+   "boy": 183,
+   "ayak": "left",
+   "uyruk": "Cote d'Ivoire"
+  },
+  "260231": {
+   "boy": 192,
+   "ayak": "right",
+   "uyruk": "Senegal"
+  },
+  "261505": {
+   "boy": 197,
+   "ayak": "left",
+   "uyruk": "Ghana"
+  },
+  "299391": {
+   "boy": 192,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "305864": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Poland"
+  },
+  "387157": {
+   "boy": 184,
+   "ayak": "left",
+   "uyruk": "Georgia"
+  },
+  "212149": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "Cameroon"
+  },
+  "259707": {
+   "boy": 187,
+   "ayak": "left",
+   "uyruk": "Denmark"
+  },
+  "266576": {
+   "boy": 177,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "317793": {
+   "boy": 167,
+   "ayak": "right",
+   "uyruk": "Uzbekistan"
+  },
+  "341702": {
+   "boy": 184,
+   "ayak": "both",
+   "uyruk": "Poland"
+  },
+  "196032": {
+   "boy": 195,
+   "ayak": "right",
+   "uyruk": "Germany"
+  },
+  "216937": {
+   "boy": 190,
+   "ayak": "right",
+   "uyruk": "Uzbekistan"
+  },
+  "252159": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "262947": {
+   "boy": 168,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "306611": {
+   "boy": 173,
+   "ayak": "right",
+   "uyruk": "Croatia"
+  },
+  "324813": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "178360": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "Greece"
+  },
+  "159052": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Brazil"
+  },
+  "282674": {
+   "boy": 191,
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "307848": {
+   "boy": 190,
+   "ayak": "left",
+   "uyruk": "Romania"
+  },
+  "369974": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "406539": {
+   "boy": 184,
+   "ayak": "left",
+   "uyruk": "Denmark"
+  },
+  "410358": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Tunisia"
+  },
+  "188053": {
+   "boy": 183,
+   "ayak": "left",
+   "uyruk": "Germany"
+  },
+  "191946": {
+   "boy": 178,
+   "ayak": "left",
+   "uyruk": "Bosnia-Herzegovina"
+  },
+  "298404": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Iceland"
+  },
+  "364830": {
+   "boy": 180,
+   "uyruk": "Sweden"
+  },
+  "219463": {
+   "boy": 178,
+   "ayak": "left",
+   "uyruk": "Mali"
+  },
+  "266003": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "276799": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "288482": {
+   "boy": 191,
+   "ayak": "both",
+   "uyruk": "Poland"
+  },
+  "317718": {
+   "boy": 178,
+   "ayak": "left",
+   "uyruk": "Ghana"
+  },
+  "408090": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "154532": {
+   "boy": 179,
+   "ayak": "left",
+   "uyruk": "Mali"
+  },
+  "246924": {
+   "boy": 183,
+   "ayak": "right",
+   "uyruk": "Suriname"
+  },
+  "261307": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "295169": {
+   "boy": 181,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "310848": {
+   "boy": 185,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "324323": {
+   "boy": 198,
+   "ayak": "left",
+   "uyruk": "Croatia"
+  },
+  "324657": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "406835": {
+   "boy": 179,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "269467": {
+   "boy": 177,
+   "ayak": "right",
+   "uyruk": "Germany"
+  },
+  "272027": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Angola"
+  },
+  "292252": {
+   "boy": 186,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "365331": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Spain"
+  },
+  "223325": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "256895": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Honduras"
+  },
+  "287207": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "356185": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "165892": {
+   "boy": 179,
+   "ayak": "left",
+   "uyruk": "DR Congo"
+  },
+  "229690": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "Congo"
+  },
+  "233720": {
+   "boy": 189,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "274270": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "277382": {
+   "boy": 184,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "324814": {
+   "boy": 194,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "218104": {
+   "boy": 172,
+   "ayak": "right",
+   "uyruk": "North Macedonia"
+  },
+  "222395": {
+   "boy": 194,
+   "ayak": "right",
+   "uyruk": "Serbia"
+  },
+  "238896": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "296563": {
+   "boy": 175,
+   "ayak": "both",
+   "uyruk": "Türkiye"
+  },
+  "177065": {
+   "boy": 177,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "206999": {
+   "boy": 170,
+   "ayak": "right",
+   "uyruk": "France"
+  },
+  "243816": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Egypt"
+  },
+  "273223": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "DR Congo"
+  },
+  "287077": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "The Gambia"
+  },
+  "217643": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "277119": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Serbia"
+  },
+  "305194": {
+   "boy": 188,
+   "ayak": "left",
+   "uyruk": "Iceland"
+  },
+  "338308": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "345934": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Italy"
+  },
+  "364674": {
+   "boy": 186,
+   "ayak": "left",
+   "uyruk": "Poland"
+  },
+  "252392": {
+   "boy": 180,
+   "uyruk": "Scotland"
+  },
+  "261298": {
+   "boy": 174,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "272734": {
+   "boy": 171,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "277435": {
+   "boy": 180,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "307519": {
+   "boy": 174,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "311429": {
+   "boy": 175,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "267519": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Guinea"
+  },
+  "273301": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Germany"
+  },
+  "290726": {
+   "boy": 179,
+   "ayak": "left",
+   "uyruk": "France"
+  },
+  "417378": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "The Gambia"
+  },
+  "215340": {
+   "boy": 190,
+   "ayak": "right",
+   "uyruk": "Cameroon"
+  },
+  "150541": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Montenegro"
+  },
+  "270325": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "332394": {
+   "boy": 176,
+   "ayak": "both",
+   "uyruk": "Cape Verde"
+  },
+  "365810": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Cape Verde"
+  },
+  "391744": {
+   "boy": 193,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "177084": {
+   "boy": 179,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "208789": {
+   "boy": 181,
+   "ayak": "left",
+   "uyruk": "Ukraine"
+  },
+  "303000": {
+   "boy": 175,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "304683": {
+   "boy": 165,
+   "ayak": "right",
+   "uyruk": "Morocco"
+  },
+  "305542": {
+   "boy": 180,
+   "ayak": "both",
+   "uyruk": "Albania"
+  },
+  "305565": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "173896": {
+   "boy": 175,
+   "ayak": "left",
+   "uyruk": "Egypt"
+  },
+  "221738": {
+   "boy": 201,
+   "ayak": "right",
+   "uyruk": "Nigeria"
+  },
+  "323056": {
+   "boy": 178,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "410817": {
+   "boy": 181,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "191997": {
+   "boy": 188,
+   "ayak": "right",
+   "uyruk": "Brazil"
+  },
+  "230757": {
+   "boy": 185,
+   "ayak": "both",
+   "uyruk": "Türkiye"
+  },
+  "292170": {
+   "boy": 185,
+   "ayak": "left",
+   "uyruk": "Croatia"
+  },
+  "306510": {
+   "boy": 186,
+   "ayak": "right",
+   "uyruk": "Portugal"
+  },
+  "308739": {
+   "boy": 190,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "335861": {
+   "boy": 180,
+   "ayak": "left",
+   "uyruk": "Romania"
+  },
+  "205323": {
+   "boy": 170,
+   "ayak": "right",
+   "uyruk": "Angola"
+  },
+  "237455": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Albania"
+  },
+  "259179": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Norway"
+  },
+  "292081": {
+   "boy": 187,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "292231": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  },
+  "414676": {
+   "boy": 182,
+   "ayak": "right",
+   "uyruk": "Bosnia-Herzegovina"
+  },
+  "82009": {
+   "boy": 187,
+   "ayak": "left",
+   "uyruk": "Venezuela"
+  },
+  "174979": {
+   "boy": 185,
+   "ayak": "right",
+   "uyruk": "Senegal"
+  },
+  "239706": {
+   "boy": 173,
+   "ayak": "left",
+   "uyruk": "Türkiye"
+  },
+  "298350": {
+   "boy": 179,
+   "ayak": "both",
+   "uyruk": "Greece"
+  },
+  "305554": {
+   "boy": 179,
+   "ayak": "left",
+   "uyruk": "Germany"
+  },
+  "364422": {
+   "boy": 180,
+   "ayak": "right",
+   "uyruk": "Türkiye"
+  }
  },
  "elle": {}
 }
