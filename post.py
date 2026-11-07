@@ -31,7 +31,7 @@ import sezon
 KLASOR = Path(__file__).parent
 STATE = KLASOR / "data" / "state.json"
 MEDIA_BRANCH = "media"
-MEDIA_KEEP_GUN = 3
+MEDIA_KEEP_GUN = 1          # videolar buyuk; Buffer gonderiyi hemen (shareNow) ceker, 1 gun yeter
 MAX_MAC_PER_RUN = 2        # bir calismada en fazla bu kadar mac paylasilir
 MAC_PENCERE_SAAT = int(os.environ.get("MAC_PENCERE_SAAT", "8"))  # bundan eski maclar atlanir (ilk calismada eski maclari basma)
 BUFFER_URL = "https://api.buffer.com"
@@ -119,6 +119,20 @@ def buffer_gonder(metin: str, gorsel_urller):
     return sonuc["post"]["id"]
 
 
+def _video_veya_kart(fn, kart_yolu):
+    """fn() muzikli mp4 yolu dondurur; basarisiz olursa PNG karta dusulur. (yol, video_mu)"""
+    try:
+        return fn(), True
+    except Exception as e:
+        print(f"video uretilemedi ({e}); PNG kart gonderilecek", file=sys.stderr)
+        return kart_yolu, False
+
+
+def _kunye(metin, video):
+    """Muzikli videoda CC BY 4.0 kunyesi tweet metnine eklenir."""
+    return metin + "\n\n" + KUNYE if video else metin
+
+
 def paylas(metin, yol, dry):
     print("-" * 50)
     print(metin)
@@ -203,7 +217,9 @@ def mod_mac(dry):
                 durum["maclar"].append(eid)
             continue
         yol, rol, oa, ob, ev = sonuc
-        if paylas(mac_metni(ev, rol, oa, ob), yol, dry) and not dry:
+        import duello_video
+        yol, video = _video_veya_kart(lambda: duello_video.uret_mac(ev, rol, oa, ob), yol)
+        if paylas(_kunye(mac_metni(ev, rol, oa, ob), video), yol, dry) and not dry:
             durum["maclar"].append(eid)
             durum["maclar"] = durum["maclar"][-200:]
             durum_yaz(durum)
@@ -216,7 +232,9 @@ def mod_sezon(dry, adlar=()):
         print("Uygun oyuncu cifti yok")
         return
     yol, rol, a, b, benz = sonuc
-    if paylas(sezon_metni(rol, a, b, benz), yol, dry) and not dry:
+    import duello_video
+    yol, video = _video_veya_kart(lambda: duello_video.uret_sezon(rol, a, b), yol)
+    if paylas(_kunye(sezon_metni(rol, a, b, benz), video), yol, dry) and not dry:
         sezon.paylasildi_isaretle(a, b)
 
 
@@ -384,7 +402,10 @@ def mod_oncesi(dry):
             continue
         yol, rol, a, b, _ = sonuc
         k = p["yapilan"] + 1
-        if paylas(oncesi_metni(ev_s, dep, bas, a, b, k, n), yol, dry):
+        import duello_video
+        ust = f"MAÇ ÖNCESİ {k}/{n}  ·  {takim_adi(ev_s)} - {takim_adi(dep)}"
+        yol, video = _video_veya_kart(lambda: duello_video.uret_sezon(rol, a, b, ust), yol)
+        if paylas(_kunye(oncesi_metni(ev_s, dep, bas, a, b, k, n), video), yol, dry):
             atilan += 1
             if dry:
                 continue
@@ -507,7 +528,10 @@ def mod_telafi(dry):
             continue
         yol, rol, a, b, _ = sonuc
         k = p["yapilan"] + 1
-        if paylas(telafi_metni(ev_s, dep, a, b, k, n, cfg.get("etiket", "Karşılaştırma")), yol, dry) and not dry:
+        import duello_video
+        ust = f"{duello.buyuk(cfg.get('etiket', 'Karşılaştırma'))} {k}/{n}  ·  {takim_adi(ev_s)} - {takim_adi(dep)}"
+        yol, video = _video_veya_kart(lambda: duello_video.uret_sezon(rol, a, b, ust), yol)
+        if paylas(_kunye(telafi_metni(ev_s, dep, a, b, k, n, cfg.get("etiket", "Karşılaştırma")), video), yol, dry) and not dry:
             sezon.paylasildi_isaretle(a, b)
             p["yapilan"] = k
             p["oyuncular"] += [str(a["id"]), str(b["id"])]

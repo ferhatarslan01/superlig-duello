@@ -9,6 +9,7 @@ Kullanim:
 """
 import subprocess
 import sys
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
@@ -24,6 +25,8 @@ ARKA, PANEL = kart_v2.ARKA, kart_v2.PANEL
 KIRMIZI, MAVI, BEYAZ = kart_v2.KIRMIZI, kart_v2.MAVI, kart_v2.BEYAZ
 ETIKET, SOLUK = kart_v2.ETIKET, kart_v2.SOLUK
 HOOK_SN, SATIR_SN, SONUC_SN, CTA_SN, DONGU_SN = 1.8, 1.5, 2.6, 2.2, 0.5
+VIDEO_FPS = 24                                   # kart videosu icin yeterli; uretimi hizlandirir
+MUZIK = Path(__file__).parent / "assets" / "muzik" / "funky-brazilian-phonk.wav"
 
 
 def _vis(t, t0, sure):
@@ -34,27 +37,42 @@ def _ease(p):
     return 1 - (1 - p) ** 3
 
 
-def hazirla(ad1, ad2):
-    oyuncular = sezon.sezon_verisi()
-    a, b = sezon.ada_gore(oyuncular, ad1), sezon.ada_gore(oyuncular, ad2)
-    rol = a["rol"]
-    oy = lambda o: {"id": o["id"], "ad": o["ad"], "takim": o["takim"], "yas": o.get("yas"), "st": o["st"],  # noqa: E731
-                    "satir2": None}
-    ka, kb = oy(a), oy(b)
-    sat = _satir.sezon_satirlari(rol)
+def _satirlar(ka, kb, sat, kotu):
+    """[(alan, etiket)] -> video satirlari. PitchAPI alanlari iki oyuncuda da yoksa gizlenir."""
     sat = [r for r in sat if not (r[0] in kart_v2.GELISMIS | {"puan"} and kart_v2._deger(ka, r[0]) is None
                                   and kart_v2._deger(kb, r[0]) is None)]
     satirlar = []
     for alan, etiket in sat:
         va, vb = kart_v2._deger(ka, alan), kart_v2._deger(kb, alan)
-        wa, wb = kart_v2._kazanan(alan, va, vb, sezon.KOTU)
+        wa, wb = kart_v2._kazanan(alan, va, vb, kotu)
         satirlar.append({"alan": alan, "etiket": etiket, "va": va, "vb": vb, "wa": wa, "wb": wb})
-    return ka, kb, satirlar
+    return satirlar
+
+
+def sezon_oyunculari(rol, a, b):
+    oy = lambda o: {"id": o["id"], "ad": o["ad"], "takim": o["takim"], "yas": o.get("yas"), "st": o["st"],  # noqa: E731
+                    "satir2": None}
+    ka, kb = oy(a), oy(b)
+    return ka, kb, _satirlar(ka, kb, _satir.sezon_satirlari(rol), sezon.KOTU)
+
+
+def mac_oyunculari(rol, oa, ob):
+    import duello
+    oy = lambda o: {"id": o.get("id"), "ad": o["ad"], "takim": o["_takim"], "yas": o.get("yas"),  # noqa: E731
+                    "st": o["st"], "satir2": None}
+    ka, kb = oy(oa), oy(ob)
+    return ka, kb, _satirlar(ka, kb, _satir.mac_satirlari(rol), duello.KOTU)
+
+
+def hazirla(ad1, ad2):
+    oyuncular = sezon.sezon_verisi()
+    a, b = sezon.ada_gore(oyuncular, ad1), sezon.ada_gore(oyuncular, ad2)
+    return sezon_oyunculari(a["rol"], a, b)
 
 
 class Video:
-    def __init__(self, ka, kb, satirlar):
-        self.ka, self.kb, self.sat = ka, kb, satirlar
+    def __init__(self, ka, kb, satirlar, ust=""):
+        self.ka, self.kb, self.sat, self.ust = ka, kb, satirlar, ust
         self.n = len(satirlar)
         self.t_satir0 = HOOK_SN
         self.t_son = self.t_satir0 + self.n * SATIR_SN + 0.3
@@ -70,6 +88,9 @@ class Video:
         d = ImageDraw.Draw(im)
         d.rectangle([0, 0, W // 2, 8], fill=KIRMIZI)
         d.rectangle([W // 2, 0, W, 8], fill=MAVI)
+        if self.ust:
+            fu = sigdir(d, self.ust, 1000, 26, False, 18)
+            d.text(((W - d.textlength(self.ust, font=fu)) / 2, 16), self.ust, font=fu, fill=SOLUK)
         for o, cx, renk in ((self.ka, 270, KIRMIZI), (self.kb, 810, MAVI)):
             foto, kaynak = fotograf.foto_al(o["ad"], o["takim"])
             o["_foto"] = kaynak
@@ -185,18 +206,48 @@ class Video:
         return im
 
 
-def uret(ad1, ad2):
-    ka, kb, sat = hazirla(ad1, ad2)
-    v = Video(ka, kb, sat)
+def render(ka, kb, satirlar, ust, yol):
+    """Videoyu (sessiz) yazar; (yol, Video) doner."""
+    v = Video(ka, kb, satirlar, ust)
     OUT.mkdir(exist_ok=True)
-    yol = OUT / f"duello_{ka['id']}_{kb['id']}.mp4"
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-                           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18",
+                           "-r", str(VIDEO_FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23",
                            "-preset", "medium", str(yol)], stdin=subprocess.PIPE)
-    for n in range(int(v.sure * FPS)):
-        ff.stdin.write(v.kare(n / FPS).tobytes())
+    for n in range(int(v.sure * VIDEO_FPS)):
+        ff.stdin.write(v.kare(n / VIDEO_FPS).tobytes())
     ff.stdin.close()
     ff.wait()
+    return Path(yol), v
+
+
+def muzik_ekle(yol):
+    import muzik
+    return Path(muzik.videoya_ekle(yol, [], 1.0, "harici", str(MUZIK), -22))
+
+
+def uret_sezon(rol, a, b, ust="SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI"):
+    """sezon.mac_oncesi_cifti / cift_kart cikti oyuncularindan muzikli video; mp4 yolunu doner."""
+    ka, kb, sat = sezon_oyunculari(rol, a, b)
+    yol, _ = render(ka, kb, sat, ust, OUT / f"vid_{ka['id']}_{kb['id']}.mp4")
+    return muzik_ekle(yol)
+
+
+def uret_mac(ev, rol, oa, ob):
+    """duello.kart_uret ciktisindan (ev, rol, oa, ob) muzikli mac sonu duello videosu."""
+    import duello
+    c = ev["header"]["competitions"][0]["competitors"]
+    ev_s = next(t for t in c if t["homeAway"] == "home")
+    dep = next(t for t in c if t["homeAway"] == "away")
+    skor = (f'{kart_v2.takim_adi(ev_s["team"]["displayName"])} {ev_s["score"]}-{dep["score"]} '
+            f'{kart_v2.takim_adi(dep["team"]["displayName"])}')
+    ka, kb, sat = mac_oyunculari(rol, oa, ob)
+    yol, _ = render(ka, kb, sat, f"MAÇ SONU DÜELLOSU  ·  {skor}", OUT / f"vid_mac_{ka['id']}_{kb['id']}.mp4")
+    return muzik_ekle(yol)
+
+
+def uret(ad1, ad2):
+    ka, kb, sat = hazirla(ad1, ad2)
+    yol, v = render(ka, kb, sat, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI", OUT / f"duello_{ka['id']}_{kb['id']}.mp4")
     return yol, v
 
 
