@@ -177,6 +177,10 @@ def yeni_biten_maclar():
                 continue
             baslangic = datetime.fromisoformat(e["date"].replace("Z", "+00:00"))
             if simdi - baslangic <= timedelta(hours=MAC_PENCERE_SAAT):
+                if SADECE_BUYUK:
+                    c = e["competitions"][0]["competitors"]
+                    if buyuk_sayisi(*(t["team"]["displayName"] for t in c)) == 0:
+                        continue
                 bulunan.append(e["id"])
     return list(dict.fromkeys(bulunan))
 
@@ -267,6 +271,7 @@ BUYUK_ARALIK_DK = int(os.environ.get("BUYUK_ARALIK_DK", "30"))   # ayni macin ka
 DIGER_ACIL_DK = 120        # diger maca bu kadar dakikadan az kaldiysa aralik kurali aranmaz
 MAX_KART_PER_RUN = 2       # bir calismada toplam en fazla bu kadar kart
 BUYUK4 = {"galatasaray", "fenerbahce", "besiktas", "trabzonspor"}
+SADECE_BUYUK = os.environ.get("SADECE_BUYUK", "1") != "0"   # 1: maç öncesi/maç sonu yalnizca buyuk 4 maclari
 KART_DERBI = 7             # iki takim da buyuk 4'ten ise
 KART_BUYUK = 3             # buyuk 4'ten yalnizca biri oynuyorsa
 KART_DIGER = 2             # diger maclar
@@ -334,7 +339,7 @@ def sirali_adaylar(maclar, ilerleme):
         if buyuk_sayisi(ev_s, dep) >= 1:
             if kalan <= ONCE_MAX_DK:
                 buyukler.append((e, bas, kalan, ev_s, dep))
-        else:
+        elif not SADECE_BUYUK:
             digerleri.append((e, bas, kalan, ev_s, dep))
     return buyukler + digerleri
 
