@@ -105,7 +105,7 @@ def takim_adi(ad):
 YUZDE_ALANLARI = {"passPct", "saveRate", "shotAcc", "tackleSuccess", "boxShotPct", "aerialPct"}
 # PitchAPI gelismis alanlari: veri yoksa None; iki oyuncuda da yoksa satir gizlenir
 GELISMIS = {"xG", "xA", "xgDiff", "boxShotPct", "keyPasses", "progPasses", "takeOnsWon", "interceptions",
-            "blocks", "aerialPct", "passesIntoBox"}
+            "blocks", "aerialPct", "aerialsWon", "passesIntoBox"}
 ONDALIK = {"gcPerMatch", "puan", "xG", "xA"}
 
 
@@ -206,7 +206,7 @@ def ciz(yol, ust, alt_baslik, a, b, satirlar, soru, kotu=(), p_alt=None):
     satirlar = [r for r in satirlar if not (r[0] in GELISMIS | {"puan"} and _deger(a, r[0]) is None
                                             and _deger(b, r[0]) is None)]
     n = len(satirlar)
-    h = 90 if n < 7 else min(68, 470 // n)     # az satirda genis, cok satirda dar satir
+    h = min(90, (958 - y0) // max(n, 1)) if n < 7 else min(68, 470 // n)   # az satirda genis (hesap yazisina tasmaz)
     off = max(0, (h - 68) / 2)
     kucuk = h < 64
     fn, fe = font(44 if kucuk else 50), font(28 if kucuk else 30, False)

@@ -168,6 +168,50 @@ def ekle(oyuncular, yenile=False):
     return eslesen
 
 
+def mac_bul(tarih_iso, ev_ad, dep_ad):
+    """ESPN macina karsilik gelen PitchAPI (biten) Super Lig maci ya da None."""
+    from datetime import datetime
+    gun = datetime.fromisoformat(tarih_iso.replace("Z", "+00:00")).date()
+    for k in (0, 1):
+        try:
+            r = _pitch(f"/v1/date/{(gun + timedelta(days=k)).isoformat()}")
+        except Exception:
+            continue
+        for m in (r["matches"] if isinstance(r, dict) else r or []):
+            if (m["league"]["name"] == "Super Lig" and m.get("status") == "finished"
+                    and _takim_ayni(m["home_team"]["name"], ev_ad) and _takim_ayni(m["away_team"]["name"], dep_ad)):
+                return m
+    return None
+
+
+def mac_ekle(ev, oyuncular):
+    """Duello ciftinin o maktaki gelismis istatistiklerini (xG, xA, kilit pas...) o["st"]'ye ekler.
+    ev: ESPN summary; oyuncular: [{"ad", "_takim", "st"}]. Eslesen oyuncu sayisini doner (0: veri hazir degil)."""
+    if not os.environ.get("PITCHAPI_API_KEY"):
+        return 0
+    c = ev["header"]["competitions"][0]
+    ev_ad = next(t for t in c["competitors"] if t["homeAway"] == "home")["team"]["displayName"]
+    dep_ad = next(t for t in c["competitors"] if t["homeAway"] == "away")["team"]["displayName"]
+    m = mac_bul(c["date"], ev_ad, dep_ad)
+    if not m:
+        return 0
+    veri = _mac_topla((m["id"], m["home_team"]["id"], m["home_team"]["name"], m["away_team"]["id"],
+                       m["away_team"]["name"]))
+    if not any(d["dk"] for d in veri.values()):       # advanced/players henuz yok (yalnizca sutlar var)
+        return 0
+    n = 0
+    for o in oyuncular:
+        adaylar = [(pid, d) for pid, d in veri.items() if _takim_ayni(d["takim"], o["_takim"])]
+        pid = _eslestir(o, adaylar)
+        if not pid:
+            continue
+        d = veri[pid]
+        for k in list(ALANLAR) + list(SUT_ALANLARI):
+            o["st"][k] = d.get(k, 0.0)
+        n += 1
+    return n
+
+
 if __name__ == "__main__":
     import sezon
     oy = sezon.sezon_verisi(yenile=False)

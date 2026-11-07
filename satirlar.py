@@ -42,23 +42,30 @@ SEZON = {
 }
 
 # --- MAC SONU (tek macin istatistikleri) ---
-_MAC_UCLU = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
-             ("shotsOnTarget", "İSABETLİ ŞUT"), ("passPct", "PAS İSABETİ"),
-             ("foulsSuffered", "KAZANILAN FAUL"), ("offsides", "OFSAYT")]
-_MAC_ORTA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("accuratePasses", "İSABETLİ PAS"),
-             ("passPct", "PAS İSABETİ"), ("effectiveTackles", "TOP ÇALMA"),
-             ("foulsSuffered", "KAZANILAN FAUL"), ("yellowCards", "SARI KART")]
-_MAC_SAVUNMA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("effectiveTackles", "TOP ÇALMA"),
-                ("totalClearance", "UZAKLAŞTIRMA"), ("passPct", "PAS İSABETİ"),
-                ("foulsCommitted", "YAPILAN FAUL"), ("yellowCards", "SARI KART")]
+# xG, kilit pas vb. PitchAPI'den (gelismis.mac_ekle); o macin verisi yoksa satir kartta gizlenir.
+_MAC_FORVET = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xG", "BEKLENEN GOL (xG)"),
+               ("totalShots", "ŞUT"), ("shotsOnTarget", "İSABETLİ ŞUT"), ("keyPasses", "KİLİT PAS"),
+               ("passPct", "PAS İSABETİ")]
+_MAC_KANAT = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xG", "BEKLENEN GOL (xG)"),
+              ("xA", "BEKLENEN ASİST (xA)"), ("keyPasses", "KİLİT PAS"), ("takeOnsWon", "BAŞARILI ÇALIM"),
+              ("totalShots", "ŞUT")]
+_MAC_ORTA = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("xA", "BEKLENEN ASİST (xA)"),
+             ("keyPasses", "KİLİT PAS"), ("progPasses", "İLERLETİCİ PAS"), ("passPct", "PAS İSABETİ"),
+             ("effectiveTackles", "TOP ÇALMA")]
+_MAC_SAVUNMA = [("totalGoals", "GOL"), ("effectiveTackles", "TOP ÇALMA"), ("interceptions", "PAS ARASI"),
+                ("blocks", "BLOK"), ("totalClearance", "UZAKLAŞTIRMA"), ("aerialsWon", "HAVA TOPU KAZANMA"),
+                ("passPct", "PAS İSABETİ")]
+_MAC_BEK = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("keyPasses", "KİLİT PAS"),
+            ("progPasses", "İLERLETİCİ PAS"), ("effectiveTackles", "TOP ÇALMA"), ("interceptions", "PAS ARASI"),
+            ("passPct", "PAS İSABETİ")]
 _MAC_KALECI = [("saves", "KURTARIŞ"), ("goalsConceded", "YENEN GOL"), ("saveRate", "KURTARIŞ ORANI"),
                ("accuratePasses", "İSABETLİ PAS"), ("passPct", "PAS İSABETİ")]
 
 MAC = {
-    "Forvet": _MAC_UCLU, "Kanat": _MAC_UCLU, "Ofansif orta saha": _MAC_UCLU,
+    "Forvet": _MAC_FORVET, "Kanat": _MAC_KANAT, "Ofansif orta saha": _MAC_KANAT,
     "Yan orta saha": _MAC_ORTA, "Merkez orta saha": _MAC_ORTA,
     "Defansif orta saha": _MAC_SAVUNMA,
-    "Stoper": _MAC_SAVUNMA, "Bek": _MAC_SAVUNMA, "Kaleci": _MAC_KALECI,
+    "Stoper": _MAC_SAVUNMA, "Bek": _MAC_BEK, "Kaleci": _MAC_KALECI,
 }
 
 

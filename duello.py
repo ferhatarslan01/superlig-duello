@@ -166,6 +166,7 @@ def sigdir(d, metin, max_w, boyut, kalin=True, en_kucuk=26):
     return font(boyut, kalin)
 
 
+GELISMIS_BEKLEME_DK = 190   # macin baslangicindan bu kadar dakika boyunca PitchAPI verisi beklenir (~75 dk bitis sonrasi)
 MAC_SATIRLARI = [("totalGoals", "GOL"), ("goalAssists", "ASİST"), ("totalShots", "ŞUT"),
                  ("shotsOnTarget", "İSABETLİ ŞUT"), ("passPct", "PAS İSABETİ"),
                  ("effectiveTackles", "TOP ÇALMA"), ("yellowCards", "SARI KART")]
@@ -184,7 +185,7 @@ def kart_ciz(ev, rol, oa, ob, yol):
     def oyuncu(o):
         dk = int(o["st"].get("minutes", 0))
         return {"id": o.get("id"), "ad": o["ad"], "takim": o["_takim"], "yas": o.get("yas"), "st": o["st"],
-                "satir2": None}
+                "satir2": None, "profil": True}
     a, b = oyuncu(oa), oyuncu(ob)
     import satirlar as _satir
     satirlar = _satir.mac_satirlari(rol)
@@ -202,6 +203,15 @@ def kart_uret(eid):
     _, rol, oa, ob = sec
     a, b = ev["rosters"]
     oa["_takim"], ob["_takim"] = a["team"]["displayName"], b["team"]["displayName"]
+    # PitchAPI gelismis istatistikleri (xG, kilit pas...). Veri henuz hazir degilse mac yeni bittiyse bir sonraki
+    # calismada tekrar denenir (ENV PITCHAPI_API_KEY yoksa beklenmez).
+    import os
+    from datetime import datetime, timedelta, timezone
+    import gelismis
+    if os.environ.get("PITCHAPI_API_KEY") and not gelismis.mac_ekle(ev, [oa, ob]):
+        bas = datetime.fromisoformat(ev["header"]["competitions"][0]["date"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) - bas < timedelta(minutes=GELISMIS_BEKLEME_DK):
+            raise RuntimeError("PitchAPI gelismis mac verisi henuz hazir degil; sonra tekrar denenecek")
     OUT.mkdir(exist_ok=True)
     yol = OUT / f"duello_{eid}.png"
     kart_ciz(ev, rol, oa, ob, yol)
