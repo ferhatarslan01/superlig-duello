@@ -130,8 +130,8 @@ def _video_veya_kart(fn, kart_yolu):
 
 
 def _kunye(metin, video):
-    """Muzikli videoda CC BY 4.0 kunyesi tweet metnine eklenir."""
-    return metin + "\n\n" + KUNYE if video else metin
+    """Tweet metnine müzik açıklaması EKLENMEZ (hesap sahibinin tercihi). Künye assets/muzik/KUNYE.txt içinde."""
+    return metin
 
 
 def paylas(metin, yol, dry):
@@ -577,7 +577,7 @@ def biten_super_lig_maclari():
 
 def video_metni(tur_baslik, ev, dep, sh, sa):
     from kart_v2 import takim_adi
-    return "\n\n".join([f"{takim_adi(ev)} {sh}-{sa} {takim_adi(dep)}", f"{tur_baslik} 👇", KUNYE,
+    return "\n\n".join([f"{takim_adi(ev)} {sh}-{sa} {takim_adi(dep)}", f"{tur_baslik} 👇",
                          "#SüperLig #Futbol"])
 
 
