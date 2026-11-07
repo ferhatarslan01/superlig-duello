@@ -622,8 +622,8 @@ class Video:
         k3 = kademe(2)
         yaz(d, (W / 2, 690 - (1 - k3) * 16), "Her gün Süper Lig oyuncu düelloları", F(44, False), ETIKET + (int(255 * k3),), anchor="mm")
         k4 = kademe(3)
-        yaz(d, (W / 2, 820 - (1 - k4) * 16), "Sen kimi seçerdin?", F(104), BEYAZ + (int(255 * k4),), anchor="mm")
-        yaz(d, (W / 2, 904 - (1 - k4) * 16), "Yorumlara yaz", F(44, False), ETIKET + (int(255 * k4),), anchor="mm")
+        yaz(d, (W / 2, 820 - (1 - k4) * 16), getattr(self, "cta_soru", "Sen kimi seçerdin?"), F(104), BEYAZ + (int(255 * k4),), anchor="mm")
+        yaz(d, (W / 2, 904 - (1 - k4) * 16), getattr(self, "cta_alt", "Yorumlara yaz"), F(44, False), ETIKET + (int(255 * k4),), anchor="mm")
         ax, ay = W / 2, 954 - (1 - k4) * 10
         d.polygon([(ax - 22, ay), (ax + 22, ay), (ax, ay + 26)], fill=ETIKET + (int(255 * k4),))
         k5 = kademe(4)                                       # TAKIP ET dugmesi (hafif nabiz)

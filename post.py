@@ -8,6 +8,7 @@ Kullanim:
   python post.py sezon Osimhen Muriqi   # belirli iki oyuncu
   python post.py liderler         # sali: Super Lig gol krali, asist krali, kartlar (3 ayri gonderi)
   python post.py video            # biten buyuk maclar: baski + sut haritasi videosu (muzikli)
+  python post.py h2h              # maca 12-48 saat kala buyuk 4 maclari: iki takimin son 5 karsilasmasi (video)
   python post.py avrupa           # persembe aksami: Sampiyonlar/Avrupa/Konferans Ligi liderleri (9 kart)
   ... --dry-run                   # kart + metin uretir, hicbir sey gondermez / kaydetmez
 
@@ -624,6 +625,61 @@ def mod_video(dry):
             return   # calisma basina tek video (iki video arasi >= dongu araligi)
 
 
+# ---------- maç öncesi: iki takımın son 5 karşılaşması (video) ----------
+H2H_MIN_SAAT, H2H_MAX_SAAT = 12, 48       # maça bu kadar saat kala paylaşılır (1-2 gün önce)
+
+
+def h2h_metni(h):
+    from kart_v2 import takim_adi
+    import h2h_video
+    a, b = takim_adi(h["a"]["name"]), takim_adi(h["b"]["name"])
+    return "\n\n".join([
+        f"{a} - {b} · {h2h_video.zaman_metni(h['mac'])}",
+        f"Son 5 karşılaşma: {a} {h['wa']} galibiyet, {h['d']} beraberlik, {b} {h['wb']} galibiyet",
+        "Sence bu maçı kim alır? 👇",
+        "#SüperLig #Futbol",
+    ])
+
+
+def mod_h2h(dry):
+    """Büyük 4 maçlarından 12-48 saat önce, iki takımın birbirleriyle son 5 karşılaşmasını video olarak paylaşır
+    (maç başına bir kez, çalışma başına tek video)."""
+    if not os.environ.get("PITCHAPI_API_KEY"):
+        return
+    trt = datetime.now(timezone.utc) + timedelta(hours=3)
+    if not dry and not 9 <= trt.hour < 22:               # gece yarısı gönderi atılmaz (TSİ 09:00-22:00)
+        return
+    import h2h_video
+    durum = durum_oku()
+    yapilan = durum.setdefault("h2h", {})
+    deneme = durum.setdefault("h2h_deneme", {})
+    maclar = h2h_video.sezon_maclari()
+    for m in h2h_video.yaklasan(SADECE_BUYUK, H2H_MIN_SAAT, H2H_MAX_SAAT, maclar):
+        if yapilan.get(m["id"]) or deneme.get(m["id"], 0) >= 3:
+            continue
+        h = h2h_video.veri(m, maclar)
+        if not h["eslesmeler"]:                       # hiç karşılaşma geçmişi yok (yeni çıkan takım vb.)
+            yapilan[m["id"]] = "bos"
+            if not dry:
+                durum_yaz(durum)
+            continue
+        try:
+            yol = h2h_video.uret(h)
+            gonderildi = paylas(_kunye(h2h_metni(h), True), yol, dry)
+        except BaseException as e:                    # SystemExit dahil
+            deneme[m["id"]] = deneme.get(m["id"], 0) + 1
+            print(f"h2h {m['id']}: gonderilemedi ({e}); deneme {deneme[m['id']]}/3", file=sys.stderr)
+            if not dry:
+                durum_yaz(durum)
+            return
+        if gonderildi and not dry:
+            yapilan[m["id"]] = datetime.now(timezone.utc).isoformat()
+            for k in list(yapilan)[:-60]:
+                yapilan.pop(k)
+            durum_yaz(durum)
+        return                                        # çalışma başına tek video
+
+
 def durumu_kaydet():
     """data/ degisikliklerini commit'le ve it (Actions'ta calisirken)."""
     if not os.environ.get("GITHUB_REPOSITORY") or "--dry-run" in sys.argv:
@@ -652,7 +708,7 @@ def mod_dongu(dakika, aralik_dk=5, dry=False):
         trt = simdi + timedelta(hours=3)
         print(f"--- {trt:%d.%m %H:%M} TRT ---", flush=True)
         for ad, fn in (("mac", lambda: mod_mac(dry)), ("oncesi", lambda: mod_oncesi(dry)), ("telafi", lambda: mod_telafi(dry)),
-                       ("video", lambda: mod_video(dry))):
+                       ("video", lambda: mod_video(dry)), ("h2h", lambda: mod_h2h(dry))):
             try:
                 fn()
             except BaseException as e:   # SystemExit dahil: bir mod dusse digerleri calissin
@@ -702,6 +758,8 @@ def main():
         mod_dongu(dk, dry=dry)
     elif mod == "video":
         mod_video(dry)
+    elif mod == "h2h":
+        mod_h2h(dry)
     elif mod == "avrupa":
         mod_avrupa(dry, zorla="--zorla" in args)
     elif mod == "liderler":
