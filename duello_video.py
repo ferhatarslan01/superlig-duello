@@ -42,6 +42,7 @@ SOLUK = (128, 137, 160)
 SARI = (255, 214, 10)
 MAVI = (46, 134, 222)
 HOOK_B, SATIR_B = 4, 3                            # vurus cinsinden: hook suresi, satirlar arasi
+FULL_B = 10                                      # son satirdan sonra TAM tablo bu kadar vurus (4.5 sn) ekranda kalir
 SONUC_B, CTA_B = 8, 8
 CARD_W = CARD_H = 440
 CARD_Y = 132
@@ -221,7 +222,7 @@ class Video:
         # zaman cizelgesi (vurus cinsinden)
         self.r0 = HOOK_B                                    # ilk satir
         self.landing = [(self.r0 + SATIR_B * i + 1) * B for i in range(self.n)]
-        self.R = (self.r0 + SATIR_B * self.n + 1) * B       # sonuc
+        self.R = (self.r0 + SATIR_B * (self.n - 1) + 1 + FULL_B) * B   # sonuc: tam tablo FULL_B vurus gorunur kaldiktan sonra
         self.C = self.R + SONUC_B * B                       # kapanis karti
         self.bitis = self.C + CTA_B * B
         self.sure = self.bitis + 0.5                        # + basa donen kapanis
