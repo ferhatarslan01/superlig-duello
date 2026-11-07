@@ -63,15 +63,33 @@ def yaklasan(sadece_buyuk=True, min_saat=12, max_saat=48, maclar=None):
     return sorted(sonuc, key=lambda m: m["time_utc"])
 
 
+SEZONLAR = ("2025/2026", "2024/2025", "2023/2024", "2022/2023")
+
+
+@lru_cache(maxsize=1)
+def gecmis_maclar():
+    """Onceki sezonlarin oynanmis Super Lig maclari (lig listesinden)."""
+    out = []
+    for sez in SEZONLAR:
+        try:
+            out += [x for x in _pitch(f"/v1/leagues/{LIG_ID}/matches?season={sez}")["matches"]
+                    if x.get("status") == "finished"]
+        except Exception as e:
+            print(f"{sez} sezonu alinamadi ({e})")
+    return out
+
+
 def veri(m, maclar=None):
     """Mac icin son 5 karsilasma + ozet. m: sezon_maclari() ogesi (fikstur)."""
     a, b = m["home_team"], m["away_team"]
     ids = {a["id"], b["id"]}
     kayit = {}
-    # H2H gecmisi, henuz oynanmamis fikstur icin bos donebiliyor: bu iki takimin oynanmis son maci varsa onun kimligiyle sorgula
-    oynanmis = sorted((x for x in (maclar or sezon_maclari()) if x.get("status") == "finished"
-                       and {x["home_team"]["id"], x["away_team"]["id"]} == ids), key=lambda x: x["time_utc"], reverse=True)
-    sorgu_id = oynanmis[0]["id"] if oynanmis else m["id"]
+    # Bu sezon + onceki 4 sezonun lig sonuclari (H2H uc noktasi oynanmamis fikstur icin bos doner)
+    cift = sorted((x for x in list(maclar or sezon_maclari()) + gecmis_maclar()
+                   if x.get("status") == "finished" and x.get("score_home") is not None
+                   and {x["home_team"]["id"], x["away_team"]["id"]} == ids), key=lambda x: x["time_utc"], reverse=True)
+    # Kupa vb. maclar icin H2H gecmisi: oynanmis en yeni macin kimligiyle sorgulanir
+    sorgu_id = cift[0]["id"] if cift else m["id"]
     try:
         h = _pitch(f"/v1/matches/{sorgu_id}/h2h")
         for x in h.get("recent_matches", []):
@@ -80,10 +98,9 @@ def veri(m, maclar=None):
                                              "sh": x["score_home"], "sa": x["score_away"]}
     except Exception as e:
         print(f"h2h alinamadi ({e}); yalnizca sezon sonuclari kullanilacak")
-    for x in (maclar or sezon_maclari()):          # bu sezon (H2H listesinde gec/eksik olabilir)
-        if x.get("status") == "finished" and {x["home_team"]["id"], x["away_team"]["id"]} == ids and x.get("score_home") is not None:
-            kayit[x["date"]] = {"tarih": x["date"], "ev": x["home_team"], "dep": x["away_team"],
-                                "sh": x["score_home"], "sa": x["score_away"]}
+    for x in cift:                                   # lig sonuclari H2H listesinin ustune yazilir (daha guncel/eksiksiz)
+        kayit[x["date"]] = {"tarih": x["date"], "ev": x["home_team"], "dep": x["away_team"],
+                            "sh": x["score_home"], "sa": x["score_away"]}
     son = sorted(kayit.values(), key=lambda r: r["tarih"], reverse=True)[:5]
     for r in son:
         if r["sh"] == r["sa"]:

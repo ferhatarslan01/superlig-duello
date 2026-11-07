@@ -659,6 +659,8 @@ def mod_h2h(dry):
             continue
         h = h2h_video.veri(m, maclar)
         if not h["eslesmeler"]:                       # hiç karşılaşma geçmişi yok (yeni çıkan takım vb.)
+            if not h2h_video.gecmis_maclar():         # önceki sezonlar alınamadıysa 'boş' sayma, sonra tekrar dene
+                return
             yapilan[m["id"]] = "bos"
             if not dry:
                 durum_yaz(durum)
