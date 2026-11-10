@@ -30,10 +30,10 @@ from baski_video import OUT
 
 KLASOR = Path(__file__).parent
 W, H = 1080, 1350
-FPS = 30
-BPM = 131.8                                       # assets/muzik/funky-brazilian-phonk.wav (ilk vurusa hizali)
+FPS = 24                                          # sinema standardi; uretimi de hizlandirir
+BPM = 131.8                                       # özgün Viral Rekabet V3 (ilk vuruşa hizalı)
 B = 60.0 / BPM
-MUZIK = KLASOR / "assets" / "muzik" / "funky-brazilian-phonk.wav"
+MUZIK = KLASOR / "assets" / "muzik" / "statduel-viral-rekabet-v3.wav"
 
 ARKA = (8, 10, 18)
 BEYAZ = (255, 255, 255)
@@ -119,7 +119,8 @@ def koy(base, katman, x, y, alfa=1.0, olcek=1.0, merkez=False):
     if alfa <= 0.002:
         return
     if olcek != 1.0:
-        katman = katman.resize((max(1, int(katman.width * olcek)), max(1, int(katman.height * olcek))), Image.BICUBIC)
+        katman = katman.resize((max(1, int(katman.width * olcek)), max(1, int(katman.height * olcek))),
+                               Image.BILINEAR if katman.width > 500 else Image.BICUBIC)
     if merkez:
         x, y = x - katman.width / 2, y - katman.height / 2
     katman = _alfa(katman, alfa)
@@ -212,6 +213,9 @@ def hazirla(ad1, ad2):
 
 # ---------------- sahne ----------------
 class Video:
+    SONUC_DIM = 0.82                                       # sonuc aninda satirlarin soluklasma orani
+    HOOK_B = HOOK_B                                        # alt siniflar hook suresini degistirebilir
+
     def __init__(self, ka, kb, satirlar, ust=""):
         self.ka, self.kb, self.sat, self.ust = ka, kb, satirlar, ust
         self.n = len(satirlar)
@@ -220,7 +224,7 @@ class Video:
         self.renk2 = (takim_ikili(ka["takim"])[1], takim_ikili(kb["takim"])[1])     # kulubun ikinci rengi
         self.puan = (sum(r["wa"] for r in satirlar), sum(r["wb"] for r in satirlar))
         # zaman cizelgesi (vurus cinsinden)
-        self.r0 = HOOK_B                                    # ilk satir
+        self.r0 = self.HOOK_B                               # ilk satir
         self.landing = [(self.r0 + SATIR_B * i + 1) * B for i in range(self.n)]
         self.R = (self.r0 + SATIR_B * (self.n - 1) + 1 + FULL_B) * B   # sonuc: tam tablo FULL_B vurus gorunur kaldiktan sonra
         self.C = self.R + SONUC_B * B                       # kapanis karti
@@ -288,9 +292,9 @@ class Video:
         im.putalpha(Image.fromarray((k * 190).astype("uint8")))
         return im.resize((W, H), Image.BICUBIC)
 
-    def _kart(self, o, renk, renk2):
-        """Foto + isim/takim alt kapakli kart (CARD_W x CARD_H, RGBA, yuvarlak)."""
-        S = 2
+    def _kart(self, o, renk, renk2, hi=False):
+        """Foto + isim/takim alt kapakli kart (CARD_W x CARD_H, RGBA, yuvarlak); hi=True: 2x cozunurluk."""
+        S = 3 if hi else 2
         w, h = CARD_W * S, CARD_H * S
         foto, _ = fotograf.foto_al(o["ad"], o["takim"])
         if foto is not None:
@@ -331,7 +335,8 @@ class Video:
         im.alpha_composite(cerceve)
         out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         out.paste(im, (0, 0), maske)
-        return out.resize((CARD_W, CARD_H), Image.LANCZOS)
+        k_ = 2 if hi else 1
+        return out.resize((CARD_W * k_, CARD_H * k_), Image.LANCZOS)
 
     @staticmethod
     def _soluk(katman):
@@ -501,7 +506,9 @@ class Video:
         y0, y1 = 676, 1232
         h = min(78, (y1 - y0) // max(n, 1))
         ys = y0 + ((y1 - y0) - n * h) / 2
-        sonuc_dim = 1 - 0.82 * _ease(_vis(t, self.R, 0.35))
+        sonuc_dim = 1 - self.SONUC_DIM * _ease(_vis(t, self.R, 0.35))
+        if sonuc_dim <= 0.002:                                # tamamen kayboldu: hic cizme (alfa~0 kalintilari olmasin)
+            return
         ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(ov, "RGBA")
         for i, r in enumerate(self.sat):
@@ -640,10 +647,317 @@ class Video:
         yaz(d, (W / 2, 1208 + (1 - k6) * 12), "Her maç, her oyuncu, veriyle", F(34, False), SOLUK + (int(255 * k6),), anchor="mm")
 
 
+# ---------------- sinematik sahne ----------------
+HERO_B = 10                                       # acilis: hook + iki oyuncu yakin plan + geri cekilme (vurus)
+KONUM = ((260, 352), (820, 352))                  # kart merkezleri (yerlesim koordinati)
+
+
+def _eio(p):
+    p = max(0.0, min(1.0, p))
+    return p * p * (3 - 2 * p)
+
+
+def _lerp(a, b, p):
+    return a + (b - a) * p
+
+
+def persp_y(img, yaw_deg, f=1500):
+    """Karti dikey eksen etrafinda yaw_deg derece cevirir (perspektif); kenarlarda pay birakir."""
+    if abs(yaw_deg) < 0.4:
+        return img
+    w, h = img.size
+    th = math.radians(yaw_deg)
+    pad = int(w * 0.22)
+    W2, H2 = w + 2 * pad, h + 2 * pad
+    kaynak = [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)]
+    hedef = []
+    for x, y in kaynak:
+        X, Z = x * math.cos(th), x * math.sin(th)
+        sc = f / (f + Z)
+        hedef.append((X * sc + W2 / 2, y * sc + H2 / 2))
+    A, Bv = [], []
+    for (X, Y), (x, y) in zip(hedef, kaynak):
+        xs, ys = x + w / 2, y + h / 2
+        A.append([X, Y, 1, 0, 0, 0, -xs * X, -xs * Y])
+        Bv.append(xs)
+        A.append([0, 0, 0, X, Y, 1, -ys * X, -ys * Y])
+        Bv.append(ys)
+    c = np.linalg.solve(np.array(A, float), np.array(Bv, float))
+    return img.transform((W2, H2), Image.PERSPECTIVE, tuple(c), Image.BILINEAR)
+
+
+def sheen(kart, p, guc=0.42):
+    """Karta tek seferlik isik suprgesi (karin kenarlarina kirpilir). p: 0..1"""
+    w, h = kart.size
+    kw, kh = max(1, w // 4), max(1, h // 4)                      # bant dusuk cozunurlukte hesaplanip buyutulur (hizli)
+    yy, xx = np.mgrid[0:kh, 0:kw]
+    u = (xx / kw + yy / kh) / 2
+    band = np.exp(-(((u - (-0.2 + 1.4 * p)) / 0.07) ** 2))
+    band = np.array(Image.fromarray((band * 255).astype("uint8")).resize((w, h), Image.BILINEAR)) / 255.0
+    a = np.minimum((band * 255 * guc).astype("uint8"), np.array(kart.getchannel("A")))
+    im = Image.new("RGBA", (w, h), (255, 255, 255, 0))
+    im.putalpha(Image.fromarray(a))
+    return im
+
+
+@lru_cache(maxsize=32)
+def toz_sprite(r, renk):
+    """Yumusak 'bokeh' parcacigi (RGBA)."""
+    boy = int(r * 6) | 1
+    im = Image.new("RGBA", (boy, boy), tuple(renk) + (0,))
+    ImageDraw.Draw(im).ellipse([boy / 2 - r, boy / 2 - r, boy / 2 + r, boy / 2 + r], fill=tuple(renk) + (255,))
+    return im.filter(ImageFilter.GaussianBlur(max(1.5, r * 0.55)))
+
+
+class SinemaVideo(Video):
+    """Duello videosu, sinematik: kamera (itme, kaydirma, geri cekilme), egimli yakin planlar, tek sefer isik suprgesi,
+    bokeh parcaciklari, kazanana itis. Kamera yalnizca kartlari/isigi hareket ettirir; yazi ve satirlar ekrana sabit."""
+    HOOK_B = HERO_B
+    SONUC_DIM = 1.0
+
+    def __init__(self, ka, kb, satirlar, ust=""):
+        self._onbellek = {}
+        super().__init__(ka, kb, satirlar, ust)
+        self.t_vs = 8.5 * B
+        rng = np.random.default_rng(3)
+        self.toz = []
+        for k in range(34):
+            self.toz.append((rng.uniform(0, W), rng.uniform(0, H), rng.uniform(5, 22), rng.uniform(0.25, 1.0),
+                             rng.uniform(-6, 6), rng.uniform(-16, -4), rng.integers(22, 70), k % 4))
+
+    def _hazirla(self):
+        super()._hazirla()
+        self.kartlar_hi = [self._kart(o, c, c2, hi=True) for o, c, c2 in ((self.ka, self.ca, self.renk2[0]),
+                                                                           (self.kb, self.cb, self.renk2[1]))]
+        self.soluk_hi = [self._soluk(k).filter(ImageFilter.GaussianBlur(9)) for k in self.kartlar_hi]
+        self.toz_renk = [(255, 240, 224), (170, 205, 255), tuple(self.ca), tuple(self.cb)]
+
+    def _olcekli(self, img, olcek):
+        """Katmanin olcekli kopyasi (onbellekli): ayni olcekte her karede yeniden boyutlandirmayi onler."""
+        if abs(olcek - 1.0) < 0.002:
+            return img
+        anahtar = (id(img), round(olcek / 0.004))
+        k = self._onbellek.get(anahtar)
+        if k is None:
+            if len(self._onbellek) > 300:
+                self._onbellek.clear()
+            k = img.resize((max(1, int(img.width * olcek)), max(1, int(img.height * olcek))),
+                         Image.BILINEAR if img.width > 500 else Image.BICUBIC)
+            self._onbellek[anahtar] = k
+        return k
+
+    @property
+    def darbeler(self):
+        return [0.0, self.t_vs, self.R]
+
+    @property
+    def sfx(self):
+        out = [(t, "tik", 1.0) for t in self.landing]
+        out += [(1.5 * B, "whoosh", 1.5), (4.5 * B, "whoosh", 1.5), (7.0 * B, "whoosh", 1.5)]
+        out.append((self.R - 0.02, "whoosh", 1.4))
+        out.append((self.R + 0.03, "parilti", 0.35))
+        return out
+
+    # ---- kamera ----
+    def _kamera(self, t):
+        b = t / B
+        z, fx, fy = 1.0, 540.0, 352.0
+        ax, ay_ = KONUM[0][0], KONUM[1][0]
+        if b < 1.5:
+            z = 1.0 + 0.02 * _eio(b / 1.5)
+        elif b < 3.0:
+            p = _eio((b - 1.5) / 1.5)
+            z, fx = _lerp(1.02, 1.9, p), _lerp(540, ax, p)
+        elif b < 4.5:
+            z, fx = 1.9 + 0.08 * (b - 3.0) / 1.5, ax
+        elif b < 5.3:
+            p = _eio((b - 4.5) / 0.8)
+            z, fx = 1.98 - 0.42 * math.sin(math.pi * p), _lerp(ax, ay_, p)
+        elif b < 7.0:
+            z, fx = 1.9 + 0.08 * (b - 5.3) / 1.7, ay_
+        elif b < 8.5:
+            p = _eio((b - 7.0) / 1.5)
+            z, fx = _lerp(1.98, 1.0, p), _lerp(ay_, 540, p)
+        else:
+            z = 1.0 + 0.025 * min(1.0, (t - self.t_vs) / max(self.R - self.t_vs, 1e-6))
+            z *= 1.0 + 0.035 * math.exp(-(t - self.t_vs) / 0.13)          # VS carpmasi: kisa itme (tek, kart katmani)
+        if t >= self.R and self.kazanan is not None:                      # kazanana itis, sonra geri cekilme
+            wx = KONUM[self.kazanan][0]
+            z0 = 1.025
+            p_in = _eio((t - self.R) / 0.75)
+            p_out = _eio((t - (self.R + 2.7)) / 0.8)
+            z = _lerp(z0, 1.5, p_in) * (1 - p_out) + 1.025 * p_out
+            fx = _lerp(540, wx, p_in) * (1 - p_out) + 540 * p_out
+        return z, fx, fy
+
+    def _zemin_s(self, t, z, fx):
+        """Zemin: iki takim isigi + odaktaki oyuncuya dusen koni isik (kamera yakin plandayken)."""
+        gh, gw = H // 8, W // 8
+        yy, xx = np.mgrid[0:gh, 0:gw]
+        nx, ny = xx / gw, yy / gh
+        s = math.sin(t * 0.6)
+        alan = np.zeros((gh, gw, 3))
+        yak = max(0.0, min(1.0, (z - 1.0) / 0.9))                        # yakin plan agirligi
+        for i, (cx, cy, renk, g) in enumerate(((0.20 + 0.03 * s, 0.30, self.ca, 0.30), (0.80 - 0.03 * s, 0.30, self.cb, 0.30))):
+            odak_a = max(0.0, 1 - abs(fx - KONUM[i][0]) / 380)
+            k = np.exp(-(((nx - cx) / 0.34) ** 2 + ((ny - cy) / 0.30) ** 2)) * g * (1 - 0.6 * yak)
+            alan += k[..., None] * np.array(renk, float)
+            if yak > 0.05:                                                # odaktaki oyuncuya koni isik
+                kk = np.exp(-(((nx - 0.5) / 0.30) ** 2 + ((ny - 0.30) / 0.42) ** 2)) * 0.55 * yak * odak_a
+                alan += kk[..., None] * np.array(renk, float)
+        alt = np.exp(-(((nx - 0.5) / 0.7) ** 2 + ((ny - 0.98) / 0.22) ** 2)) * 0.10
+        alan += alt[..., None] * np.array((110, 130, 190), float)
+        arr = np.clip(np.array(ARKA, float) + alan, 0, 255).astype("uint8")
+        return Image.fromarray(arr).resize((W, H), Image.BICUBIC).convert("RGBA")
+
+    def _toz_ciz(self, im, t, fx, z):
+        for (x0, y0, r_, f, vx, vy, al, ci) in self.toz:
+            x = (x0 + vx * t - (fx - 540) * min(z, 2.0) * 0.30 * f) % W
+            y = (y0 + vy * t) % H
+            koy(im, toz_sprite(round(r_ * (0.7 + 0.5 * f)), self.toz_renk[ci]), x, y, al / 255 * (0.5 + 0.5 * f), merkez=True)
+
+    # ---- kare ----
+    def _kare(self, t):
+        z, fx, fy = self._kamera(t)
+        im = self._zemin_s(t, z, fx)
+        self._toz_ciz(im, t, fx, z)
+        im.alpha_composite(self.vig)
+        ana = 1.0 - _ease(_vis(t, self.C, 0.4))
+        if ana > 0.003:
+            self._ana_s(im, t, ana, z, fx, fy)
+        if t >= self.C - 0.01:
+            self._kapanis(im, t)
+        if self.R <= t < self.R + 0.22:
+            im.alpha_composite(Image.new("RGBA", (W, H), (255, 255, 255, int(78 * (1 - (t - self.R) / 0.22)))))
+        return im.convert("RGB")
+
+    def _kartlar_ciz(self, im, t, ana, z, fx, fy):
+        yak = max(0.0, min(1.0, (z - 1.0) / 0.9))
+        ay = 352 + 250 * yak
+        gir = _ease(_vis(t, 0.0, 0.32))
+        sonuc_p = _ease(_vis(t, self.R, 0.4))
+        for i in (0, 1):
+            cx, cy = KONUM[i]
+            cx += (-1 if i == 0 else 1) * 70 * (1 - gir)
+            sx, sy = 540 + (cx - fx) * z, ay + (cy - fy) * z
+            if sx + 440 * z / 2 < -140 or sx - 440 * z / 2 > W + 140:
+                continue
+            giris_olcek = 1.0 + 0.10 * (1 - gir)
+            a = (0.62 + 0.38 * gir) * ana
+            kazandi, kaybetti = self.kazanan == i, self.kazanan is not None and self.kazanan != i
+            # odak disi: soluk + bulanik (uzaklastikca)
+            d = min(1.0, abs(fx - KONUM[i][0]) / 300) * min(1.0, max(0.0, (z - 1.15) / 0.5))
+            sc = z * giris_olcek * (1 + 0.04 * sonuc_p if kazandi else 1)
+            g_alfa = 0.55 + (0.35 * sonuc_p if kazandi else 0) - (0.35 * sonuc_p if kaybetti else 0)
+            glow = isima(tuple(self.renk[i]), CARD_W, CARD_H, 40, 46, 0.55)
+            koy(im, self._olcekli(glow, sc), sx, sy, a * g_alfa * (1 - 0.5 * d), 1.0, merkez=True)
+            kart = self.kartlar_hi[i]
+            # egim (yakin planda) + tek sefer isik suprgesi
+            odak_w = max(0.0, 1 - abs(fx - KONUM[i][0]) / 280) * yak
+            yaw = (-9 if i == 0 else 9) * odak_w * (1 - _eio((t - self.R) / 0.6) if t >= self.R else 1)
+            p_sh = None
+            for (t0, hedef) in ((3.0 * B, 0), (5.3 * B, 1)):
+                if hedef == i and 0 <= t - t0 < 0.7:
+                    p_sh = (t - t0) / 0.7
+            if kazandi and 0.35 <= t - self.R < 1.2:
+                p_sh = (t - self.R - 0.35) / 0.85
+            if p_sh is not None:
+                kart = kart.copy()
+                kart.alpha_composite(sheen(kart, p_sh))
+            hareketsiz = p_sh is None and abs(yaw) < 0.4
+            if hareketsiz:
+                kart, olc = self._olcekli(self.kartlar_hi[i], sc * 0.5), 1.0
+            else:
+                kart, olc = persp_y(kart, yaw), sc * 0.5
+            soluk = self._olcekli(self.soluk_hi[i], sc * 0.5)
+            if kaybetti and sonuc_p > 0:
+                koy(im, soluk, sx, sy, a, 1.0, merkez=True)
+                koy(im, kart, sx, sy, a * (1 - sonuc_p), olc, merkez=True)
+            else:
+                if d > 0.02:
+                    koy(im, soluk, sx, sy, a * d, 1.0, merkez=True)
+                koy(im, kart, sx, sy, a * (1 - d), olc, merkez=True)
+        return ay
+
+    def _ana_s(self, im, t, ana, z, fx, fy):
+        self._ust_serit(im, ana)
+        self._kartlar_ciz(im, t, ana, z, fx, fy)
+        # --- acilis damgasi: ilk karede carpar, yakin plana gecerken solar ---
+        if t < 2.8 * B:
+            p_in = _ease(_vis(t, 0.0, 0.26))
+            cikis = _ease(_vis(t, 1.4 * B, 1.2 * B))
+            a = (0.72 + 0.28 * p_in) * (1 - cikis)
+            koy(im, self.st_hook, W / 2, 900 - 40 * cikis, a * ana, 1.30 - 0.30 * p_in, merkez=True)
+            sd = ImageDraw.Draw(im, "RGBA")
+            yaz(sd, (W / 2, 1010 - 40 * cikis), self.sub_hook, F(44, False), ETIKET + (int(255 * a * ana),), anchor="mm")
+        # --- VS carpmasi, sonra chipler ve skor hapi ---
+        p_vs = _ease(_vis(t, self.t_vs, 0.22))
+        if p_vs > 0:
+            koy(im, self.vs, W / 2, CARD_Y + CARD_H / 2 - 20,
+                ana * min(1.0, p_vs * 1.6) * (1 - _ease(_vis(t, self.R, 0.3))), 1.9 - 0.9 * p_vs, merkez=True)
+        gizle = 1 - _ease(_vis(t, self.R, 0.3))                          # sonuc ani: kartlarin ustu bos kalsin
+        ch = _ease(_vis(t, self.t_vs + 0.2, 0.35)) * gizle
+        for i in (0, 1):
+            c = self.chipler[i]
+            koy(im, c, (CARD_X[0] if i == 0 else CARD_X[1] + CARD_W - c.width), CARD_Y + CARD_H + 22 + (1 - ch) * 12, ch * ana)
+        self._skor_hapi(im, t, ana * ch)
+        self._satirlar_ciz(im, t, ana)
+        if t >= self.R:
+            self._sonuc_s(im, t, ana, z, fx)
+        self._hesap(im, ana)
+
+    def _sonuc_s(self, im, t, ana, z, fx):
+        """Kazanan: kamera ona itilir, alttan koyu gecis ustunde isim ve sonuc yazisi yukselir."""
+        p = _ease(_vis(t, self.R + 1.0, 0.55))
+        if p > 0:
+            gr = np.zeros((H, 1), dtype="uint8")
+            y0 = 780
+            for y in range(y0, H):
+                gr[y, 0] = int(236 * ((y - y0) / (H - y0)) ** 0.8)
+            kap = Image.new("RGBA", (W, H), ARKA + (0,))
+            kap.putalpha(Image.fromarray(np.repeat(gr, W, axis=1)))
+            koy(im, kap, 0, 0, p * ana)
+            ov = ImageDraw.Draw(im, "RGBA")
+            etiket = "KAZANAN" if self.kazanan is not None else "SONUÇ"
+            harf_arali(ov, W / 2, 880 + (1 - p) * 30, etiket, F(40), SOLUK + (int(255 * p * ana),), 10)
+            koy(im, self.st_sonuc, W / 2, 1020 + (1 - p) * 40, p * ana, merkez=True)
+            if self.kazanan is None:
+                sub = f"{self.puan[0]} - {self.puan[1]} satır"
+            else:
+                sub = f"{max(self.puan)} - {min(self.puan)} SATIRDA ÜSTÜN"
+            yaz(ov, (W / 2, 1166 + (1 - p) * 30), sub, F(50), BEYAZ + (int(255 * p * ana),), anchor="mm")
+        if self.kazanan is not None and t < self.R + 2.4:
+            tau = t - self.R
+            yak = max(0.0, min(1.0, (z - 1.0) / 0.9))
+            sx = 540 + (KONUM[self.kazanan][0] - fx) * z
+            sy = 352 + 250 * yak - 60 * z
+            self._kivilcim_s(im, tau, ana, sx, sy)
+
+    def _kivilcim_s(self, im, tau, ana, ox, oy):
+        rng = np.random.default_rng(11)
+        i = self.kazanan
+        renkler = [self.renk[i], BEYAZ, SARI]
+        ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(ov, "RGBA")
+        for k in range(64):
+            ang = math.radians(rng.uniform(-165, -15))
+            hiz = rng.uniform(260, 780)
+            yas = rng.uniform(1.0, 1.9)
+            r0 = rng.uniform(3, 7)
+            if tau > yas:
+                continue
+            x = ox + math.cos(ang) * hiz * tau
+            y = oy + math.sin(ang) * hiz * tau + 0.5 * 620 * tau * tau
+            rr = r0 * (1 - 0.4 * tau / yas)
+            a = int(255 * (1 - tau / yas) * ana)
+            d.ellipse([x - rr, y - rr, x + rr, y + rr], fill=tuple(renkler[k % 3]) + (a,))
+        im.alpha_composite(ov)
+
+
 # ---------------- cikti ----------------
 def render(ka, kb, satirlar, ust, yol):
     """Videoyu (sessiz) yazar; (yol, Video) doner."""
-    v = Video(ka, kb, satirlar, ust)
+    v = SinemaVideo(ka, kb, satirlar, ust)
     OUT.mkdir(exist_ok=True)
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
                            "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "21",
@@ -698,7 +1012,7 @@ def main():
         raise SystemExit(__doc__)
     if kareler:
         ka, kb, sat = hazirla(a[0], a[1])
-        v = Video(ka, kb, sat, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI")
+        v = SinemaVideo(ka, kb, sat, "SÜPER LİG  ·  SEZON KARŞILAŞTIRMASI")
         OUT.mkdir(exist_ok=True)
         for t in kareler:
             yol = OUT / f"_kare_{t:g}.png"

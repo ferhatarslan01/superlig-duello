@@ -97,6 +97,19 @@ def tik(rng):
     return ses / max(np.abs(ses).max(), 1e-9)
 
 
+def whoosh(rng):
+    """Kamera hareketi icin 'whoosh': bant filtreli gurultu + yukselen sinus, tepe ~0.3 sn."""
+    sure = 0.7
+    n = int(sure * SR)
+    t = np.arange(n) / SR
+    gur = _yuksek_geciren(_alcak_geciren(rng.normal(0, 1, n), 5200), 700)
+    zarf = np.sin(np.pi * np.clip(t / sure, 0, 1)) ** 2.2
+    f = 280 + 1700 * (t / sure) ** 1.6
+    ton = np.sin(2 * np.pi * np.cumsum(f) / SR)
+    ses = (gur * 0.9 + ton * 0.22) * zarf
+    return ses / max(np.abs(ses).max(), 1e-9) * 0.7
+
+
 def parilti(rng):
     """Parilti: yukselen kucuk can notalari (sonuc aninda darbenin ustune)."""
     sure = 1.8
@@ -401,6 +414,8 @@ def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False,
     for t_sfx, tur, _ in (sfx or []):                     # tik: muzik cok kisa (0.14 sn) geri cekilir, tik onun ustunde duyulur
         if tur == "tik":
             sc[int(max(t_sfx - 0.02, 0) * SR):int((t_sfx + 0.14) * SR)] *= 0.45
+        elif tur == "whoosh":                                 # kamera hareketi: muzik 0.6 sn boyunca geri cekilir
+            sc[int(max(t_sfx - 0.05, 0) * SR):int((t_sfx + 0.6) * SR)] *= 0.5
     mix *= sc[:, None]
     gercek = gol_sesi_yukle(ses_dosyasi, ses_sn) if ses_dosyasi else None
     for g in goller_sn:
@@ -417,7 +432,7 @@ def uret_harici(dosya, sure, goller_sn, yol_wav, gol_sesi=False, yukselis=False,
             if k is not None:
                 _ekle(mix[:, ch], k, g + 0.05, 3.4)
     for t_sfx, tur, kazanc in (sfx or []):               # videoya ozel efektler: (saniye, 'tik'|'parilti'|'darbe', kazanc)
-        snd = {"tik": tik, "parilti": parilti, "darbe": darbe}[tur](rng)
+        snd = {"tik": tik, "parilti": parilti, "darbe": darbe, "whoosh": whoosh}[tur](rng)
         for ch in (0, 1):
             _ekle(mix[:, ch], snd, t_sfx, kazanc)
     mix = mix[:n]
