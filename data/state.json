@@ -29,7 +29,8 @@
   "hafta": "2026-W46",
   "gonderilen": [
    "champions:asist",
-   "champions:gol"
+   "champions:gol",
+   "champions:kart"
   ]
  },
  "oncesi": {
@@ -414,7 +415,7 @@
    "kart"
   ]
  },
- "avrupa_son": "2026-11-12T15:33:56.411157+00:00",
+ "avrupa_son": "2026-11-12T16:04:14.481963+00:00",
  "h2h": {
   "m_2d7YyQ": "bos",
   "m_4KgMsz": "2026-11-07T06:21:37.269087+00:00",
