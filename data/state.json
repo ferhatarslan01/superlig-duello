@@ -26,17 +26,9 @@
  ],
  "liderler_hafta": "2026-W43",
  "avrupa": {
-  "hafta": "2026-W45",
+  "hafta": "2026-W46",
   "gonderilen": [
-   "champions:asist",
-   "champions:gol",
-   "champions:kart",
-   "conf:asist",
-   "conf:gol",
-   "conf:kart",
-   "europa:asist",
-   "europa:gol",
-   "europa:kart"
+   "champions:gol"
   ]
  },
  "oncesi": {
@@ -421,7 +413,7 @@
    "kart"
   ]
  },
- "avrupa_son": "2026-11-05T19:10:18.754279+00:00",
+ "avrupa_son": "2026-11-12T15:03:37.388031+00:00",
  "h2h": {
   "m_2d7YyQ": "bos",
   "m_4KgMsz": "2026-11-07T06:21:37.269087+00:00",
