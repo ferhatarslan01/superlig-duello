@@ -1,0 +1,56 @@
+name: Video paylas (X, elle)
+
+# Hazir bir videoyu X'e paylasir. Yalnizca elle calisir: Actions > "Video paylas (X, elle)" > Run workflow.
+# video_url: 'media' dalindaki dosyanin raw adresi (https://raw.githubusercontent.com/<repo>/media/...mp4)
+# metin: paylasim metni
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "media dalindaki mp4 raw adresi"
+        required: true
+      metin:
+        description: "X paylasim metni"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  paylas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: X'e gonder (Buffer)
+        env:
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_CHANNEL_ID: ${{ secrets.BUFFER_CHANNEL_ID }}
+          VIDEO_URL: ${{ inputs.video_url }}
+          METIN: ${{ inputs.metin }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, urllib.request
+          url, metin = os.environ["VIDEO_URL"], os.environ["METIN"]
+          if not url.startswith("https://raw.githubusercontent.com/") or not url.lower().endswith(".mp4"):
+              sys.exit("HATA: video_url bu deponun media dalindaki bir .mp4 raw adresi olmali")
+          sorgu = """
+            mutation CreatePost($text: String!, $channelId: ChannelId!, $assets: [AssetInput!]) {
+              createPost(input: {text: $text, channelId: $channelId, schedulingType: automatic,
+                                 mode: shareNow, assets: $assets}) {
+                ... on PostActionSuccess { post { id } }
+                ... on MutationError { message }
+              }
+            }"""
+          govde = json.dumps({"query": sorgu, "variables": {"text": metin, "channelId": os.environ["BUFFER_CHANNEL_ID"],
+                                                            "assets": [{"video": {"url": url}}]}}).encode()
+          istek = urllib.request.Request("https://api.buffer.com", data=govde, headers={
+              "Content-Type": "application/json", "Authorization": "Bearer " + os.environ["BUFFER_API_KEY"]})
+          with urllib.request.urlopen(istek, timeout=120) as r:
+              yanit = json.load(r)
+          if yanit.get("errors"):
+              sys.exit(f"Buffer GraphQL hatasi: {yanit['errors']}")
+          sonuc = yanit["data"]["createPost"]
+          if "message" in sonuc:
+              sys.exit("Buffer: " + sonuc["message"])
+          print("Gonderildi, post id:", sonuc["post"]["id"])
+          PY
