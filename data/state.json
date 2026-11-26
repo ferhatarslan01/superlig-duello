@@ -34,7 +34,8 @@
   "gonderilen": [
    "champions:asist",
    "champions:gol",
-   "champions:kart"
+   "champions:kart",
+   "europa:gol"
   ]
  },
  "oncesi": {
@@ -491,7 +492,7 @@
    "kart"
   ]
  },
- "avrupa_son": "2026-11-26T16:03:50.035724+00:00",
+ "avrupa_son": "2026-11-26T16:33:02.004435+00:00",
  "h2h": {
   "m_2d7YyQ": "bos",
   "m_4KgMsz": "2026-11-07T06:21:37.269087+00:00",
